@@ -3,98 +3,243 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
 
-  <title>SocialScran | Food Review Test</title>
+  <title>SocialScran | Discover Food Worth Sharing</title>
+
+  <link
+    href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
+    rel="stylesheet">
 
   <style>
-    :root {
-      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
-      color: #202124;
-      background: #fffaf5;
-    }
-
     * {
       box-sizing: border-box;
     }
 
+    :root {
+      font-family: Arial, Helvetica, sans-serif;
+      color: #222;
+    }
+
     body {
       margin: 0;
+      overflow: hidden;
+      background: #f7f5f1;
     }
 
-    header {
+    button, input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    #map {
+      position: fixed;
+      inset: 0;
+    }
+
+    /* Header */
+
+    .header {
+      position: fixed;
+      z-index: 10;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 15px;
+      pointer-events: none;
+    }
+
+    .header-inner {
+      max-width: 650px;
+      margin: auto;
+      pointer-events: auto;
+    }
+
+    .brand {
+      display: inline-block;
+      padding: 9px 15px;
       background: #171717;
       color: white;
-      padding: 25px 18px;
-      text-align: center;
+      font-weight: 800;
+      font-size: 23px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 3px 15px #0002;
     }
 
-    header h1 {
-      margin: 0;
-      font-size: 2rem;
-    }
-
-    header h1 span {
+    .brand span {
       color: #ff8247;
     }
 
-    header p {
-      color: #ddd;
-      margin: 8px 0 0;
-    }
-
-    main {
-      max-width: 1040px;
-      margin: 32px auto;
-      padding: 0 18px;
-    }
-
-    .intro {
-      margin-bottom: 26px;
-    }
-
-    .intro p {
-      line-height: 1.55;
-      color: #555;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(
-        auto-fit,
-        minmax(min(100%, 320px), 1fr)
-      );
-      gap: 24px;
-    }
-
-    .card {
+    .search {
+      width: 100%;
+      padding: 15px 18px;
+      border: 1px solid #ddd;
+      border-radius: 14px;
       background: white;
-      border: 1px solid #e8e1d8;
-      border-radius: 16px;
-      padding: 18px;
-      min-width: 0;
-      box-shadow: 0 5px 22px #0000000a;
+      outline: none;
+      box-shadow: 0 4px 20px #0002;
     }
 
-    .card h2 {
-      margin: 0 0 14px;
-      font-size: 1.2rem;
+    .search:focus {
+      border-color: #ff8247;
     }
 
-    .embed {
-      min-height: 380px;
+    .filters {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .filters button {
+      border: 1px solid #ddd;
+      border-radius: 25px;
+      background: white;
+      padding: 10px 15px;
+      white-space: nowrap;
+      box-shadow: 0 2px 10px #0001;
+    }
+
+    .filters button.active {
+      background: #171717;
+      color: white;
+      border-color: #171717;
+    }
+
+    /* Map pins */
+
+    .pin {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 43px;
+      height: 43px;
+      background: #ff7540;
+      border: 3px solid white;
+      border-radius: 50%;
+      box-shadow: 0 3px 12px #0005;
+      font-size: 22px;
+      cursor: pointer;
+      transition: transform .15s;
+    }
+
+    .pin:hover {
+      transform: scale(1.15);
+    }
+
+    /* Restaurant details panel */
+
+    .panel {
+      position: fixed;
+      z-index: 20;
+      top: 0;
+      right: 0;
+      width: min(440px, 100%);
+      height: 100dvh;
+      background: white;
+      box-shadow: -5px 0 30px #0003;
+      transform: translateX(105%);
+      transition: transform .25s ease;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+
+    .panel.open {
+      transform: translateX(0);
+    }
+
+    .panel-content {
+      padding: 22px;
+    }
+
+    .panel-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .close {
+      border: 0;
+      border-radius: 50%;
+      background: #f0f0f0;
+      width: 38px;
+      height: 38px;
+      font-size: 23px;
+    }
+
+    .restaurant-title {
+      font-size: 25px;
+      margin: 15px 0 8px;
+    }
+
+    .muted {
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .tag {
+      display: inline-block;
+      background: #fff0e8;
+      color: #a84217;
+      padding: 7px 11px;
+      border-radius: 20px;
+      font-size: 13px;
+      margin: 8px 0;
+    }
+
+    .directions {
+      display: block;
+      text-align: center;
+      text-decoration: none;
+      background: #ff7540;
+      color: white;
+      padding: 14px;
+      border-radius: 12px;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+
+    .video-section {
+      margin-top: 25px;
+    }
+
+    .video-section h3 {
+      margin-bottom: 15px;
+    }
+
+    .video-card {
+      border: 1px solid #eee;
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 18px;
+      background: #fafafa;
+    }
+
+    .video-label {
+      font-weight: bold;
+      margin: 0 0 12px;
+    }
+
+    .video-frame {
+      width: 100%;
       display: flex;
       justify-content: center;
-      align-items: flex-start;
       overflow: hidden;
     }
 
-    .embed iframe {
+    .video-frame iframe {
       width: 100%;
       max-width: 325px;
       height: 580px;
       border: 0;
-      border-radius: 12px;
+      border-radius: 10px;
     }
 
     .instagram-media {
@@ -103,125 +248,416 @@
       max-width: 540px !important;
     }
 
-    .fallback {
-      margin: 14px 0 0;
-      font-size: 0.92rem;
-    }
-
-    .fallback a {
-      color: #a83f16;
+    .video-link {
+      display: block;
+      color: #b34c1c;
+      font-size: 13px;
+      margin-top: 10px;
       overflow-wrap: anywhere;
     }
 
-    .note {
-      font-size: 0.9rem;
+    .empty {
+      padding: 15px;
+      background: #f6f6f6;
+      border-radius: 12px;
       color: #666;
-      margin-top: 25px;
-      line-height: 1.55;
     }
 
-    footer {
-      text-align: center;
-      color: #777;
-      padding: 35px 18px;
+    .maplibregl-ctrl-bottom-right {
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 650px) {
+      .header {
+        padding: 12px;
+      }
+
+      .brand {
+        font-size: 20px;
+      }
+
+      .panel {
+        top: auto;
+        bottom: 0;
+        width: 100%;
+        height: 82dvh;
+        border-radius: 22px 22px 0 0;
+        transform: translateY(105%);
+      }
+
+      .panel.open {
+        transform: translateY(0);
+      }
+
+      .panel-content {
+        padding: 18px;
+      }
     }
   </style>
 </head>
 
 <body>
 
-  <header>
-    <h1>Social<span>Scran</span> 🍔</h1>
-    <p>See it. Crave it. Find it.</p>
+  <div id="map" aria-label="Restaurant discovery map"></div>
+
+  <header class="header">
+    <div class="header-inner">
+
+      <div class="brand">
+        Social<span>Scran</span> 🍔
+      </div>
+
+      <input
+        id="search"
+        class="search"
+        type="search"
+        placeholder="Search restaurants or cities..."
+        aria-label="Search restaurants or cities">
+
+      <div class="filters">
+        <button class="active" data-city="all">
+          All
+        </button>
+
+        <button data-city="Manchester">
+          Manchester
+        </button>
+
+        <button data-city="Liverpool">
+          Liverpool
+        </button>
+
+        <button data-city="Warrington">
+          Warrington
+        </button>
+      </div>
+
+    </div>
   </header>
 
-  <main>
+  <aside id="panel" class="panel"
+         aria-label="Restaurant details">
 
-    <section class="intro">
-      <h2>Food review video test</h2>
-      <p>
-        We're testing TikTok and Instagram reviews
-        side by side before building the restaurant
-        discovery map.
-      </p>
-    </section>
+    <div class="panel-content">
 
-    <div class="grid">
+      <div class="panel-top">
+        <strong>Restaurant details</strong>
+        <button id="close" class="close"
+                aria-label="Close restaurant details">
+          &times;
+        </button>
+      </div>
 
-      <!-- TikTok Review -->
-
-      <article class="card">
-        <h2>TikTok review</h2>
-
-        <div class="embed">
-          <iframe
-            src="https://www.tiktok.com/embed/v2/7709913534401973526"
-            title="TikTok food review"
-            allow="encrypted-media; fullscreen; picture-in-picture"
-            allowfullscreen
-            loading="lazy"
-            referrerpolicy="strict-origin-when-cross-origin">
-          </iframe>
-        </div>
-
-        <p class="fallback">
-          Video not showing?
-          <a
-            href="https://www.tiktok.com/@jasinliverpool/video/7709913534401973526"
-            target="_blank"
-            rel="noopener noreferrer">
-            Open the original TikTok
-          </a>
-        </p>
-      </article>
-
-      <!-- Instagram Review -->
-
-      <article class="card">
-        <h2>Instagram review</h2>
-
-        <div class="embed">
-          <blockquote
-            class="instagram-media"
-            data-instgrm-permalink="https://www.instagram.com/reel/Df7uBGJBxzd/"
-            data-instgrm-version="14">
-
-            <a
-              href="https://www.instagram.com/reel/Df7uBGJBxzd/"
-              target="_blank"
-              rel="noopener noreferrer">
-              View this Instagram Reel
-            </a>
-
-          </blockquote>
-        </div>
-
-        <p class="fallback">
-          Video not showing?
-          <a
-            href="https://www.instagram.com/reel/Df7uBGJBxzd/"
-            target="_blank"
-            rel="noopener noreferrer">
-            Open the original Instagram Reel
-          </a>
-        </p>
-      </article>
+      <div id="restaurant-content"></div>
 
     </div>
 
-    <p class="note">
-      This is a public prototype, not the finished
-      SocialScran website. Video availability depends
-      on the creator's settings and each platform's
-      embedding rules. If an embed stays blank, use
-      the original-post link to check the video.
-    </p>
+  </aside>
 
-  </main>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 
-  <footer>
-    SocialScran · Early website prototype
-  </footer>
+  <script>
+    /*
+      SOCIALSCRAN DEMO DATA
+
+      The pin below is an illustrative location,
+      NOT a verified restaurant address.
+
+      Later, we'll replace this with approved
+      restaurant records from a database.
+    */
+
+    const restaurants = [
+      {
+        id: 1,
+        name: "Liverpool Food Review Demo",
+        city: "Liverpool",
+        category: "Food reviews",
+        address: "Liverpool city centre (demo location)",
+        hours: "Not yet verified",
+        lng: -2.985,
+        lat: 53.408,
+        demo: true,
+
+        videos: [
+          {
+            platform: "TikTok",
+            url: "https://www.tiktok.com/@jasinliverpool/video/7709913534401973526",
+            id: "7709913534401973526"
+          },
+          {
+            platform: "Instagram",
+            url: "https://www.instagram.com/reel/Df7uBGJBxzd/"
+          }
+        ]
+      }
+    ];
+
+    const map = new maplibregl.Map({
+      container: "map",
+      style: "https://tiles.openfreemap.org/styles/liberty",
+      center: [-2.85, 53.43],
+      zoom: 9
+    });
+
+    map.addControl(
+      new maplibregl.NavigationControl(),
+      "bottom-right"
+    );
+
+    const markers = [];
+    let activeCity = "all";
+
+    const panel = document.getElementById("panel");
+    const content = document.getElementById(
+      "restaurant-content"
+    );
+
+    const search = document.getElementById("search");
+
+    function escapeHTML(value) {
+      return String(value).replace(
+        /[&<>"']/g,
+        char => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;"
+        })[char]
+      );
+    }
+
+    function showRestaurant(restaurant) {
+      const name = escapeHTML(restaurant.name);
+      const city = escapeHTML(restaurant.city);
+      const category = escapeHTML(restaurant.category);
+      const address = escapeHTML(restaurant.address);
+      const hours = escapeHTML(restaurant.hours);
+
+      let html = `
+        <h2 class="restaurant-title">${name}</h2>
+
+        <span class="tag">${category}</span>
+
+        <p class="muted">
+          📍 ${address}<br>
+          🏙️ ${city}<br>
+          🕒 Opening times: ${hours}
+        </p>
+      `;
+
+      if (restaurant.demo) {
+        html += `
+          <p class="empty">
+            This is a demonstration pin.
+            The restaurant's exact address has
+            not yet been confirmed.
+          </p>
+        `;
+      } else {
+        const destination =
+          restaurant.lat + "," + restaurant.lng;
+
+        const directionsURL =
+          "https://www.google.com/maps/dir/?api=1&destination=" +
+          encodeURIComponent(destination);
+
+        html += `
+          <a class="directions"
+             href="${directionsURL}"
+             target="_blank"
+             rel="noopener noreferrer">
+            Get directions
+          </a>
+        `;
+      }
+
+      html += `
+        <section class="video-section">
+          <h3>Social food reviews</h3>
+      `;
+
+      restaurant.videos.forEach(video => {
+        html += `<div class="video-card">`;
+
+        html += `
+          <p class="video-label">
+            ${escapeHTML(video.platform)} Review
+          </p>
+        `;
+
+        if (video.platform === "TikTok") {
+          html += `
+            <div class="video-frame">
+              <iframe
+                src="https://www.tiktok.com/embed/v2/${encodeURIComponent(video.id)}"
+                title="TikTok food review"
+                loading="lazy"
+                allow="encrypted-media; fullscreen; picture-in-picture"
+                allowfullscreen>
+              </iframe>
+            </div>
+          `;
+        }
+
+        if (video.platform === "Instagram") {
+          html += `
+            <div class="video-frame">
+              <blockquote
+                class="instagram-media"
+                data-instgrm-permalink="${escapeHTML(video.url)}"
+                data-instgrm-version="14">
+                <a href="${escapeHTML(video.url)}">
+                  View Instagram Reel
+                </a>
+              </blockquote>
+            </div>
+          `;
+        }
+
+        html += `
+          <a class="video-link"
+             href="${escapeHTML(video.url)}"
+             target="_blank"
+             rel="noopener noreferrer">
+            Open original ${escapeHTML(video.platform)} video
+          </a>
+        `;
+
+        html += `</div>`;
+      });
+
+      html += `</section>`;
+
+      content.innerHTML = html;
+
+      panel.classList.add("open");
+
+      /*
+        Instagram embeds are dynamically inserted,
+        so we need to process them after rendering.
+      */
+      if (
+        window.instgrm &&
+        window.instgrm.Embeds
+      ) {
+        window.instgrm.Embeds.process();
+      }
+    }
+
+    function closePanel() {
+      panel.classList.remove("open");
+      content.innerHTML = "";
+    }
+
+    document.getElementById("close")
+      .addEventListener("click", closePanel);
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        closePanel();
+      }
+    });
+
+    function renderMarkers() {
+      markers.forEach(marker => marker.remove());
+      markers.length = 0;
+
+      const query = search.value.trim().toLowerCase();
+
+      const filtered = restaurants.filter(restaurant => {
+        const matchesCity =
+          activeCity === "all" ||
+          restaurant.city === activeCity;
+
+        const searchableText = [
+          restaurant.name,
+          restaurant.city,
+          restaurant.category,
+          restaurant.address
+        ].join(" ").toLowerCase();
+
+        const matchesSearch =
+          searchableText.includes(query);
+
+        return matchesCity && matchesSearch &&
+               restaurant.videos.length > 0;
+      });
+
+      filtered.forEach(restaurant => {
+        const element = document.createElement("button");
+        element.className = "pin";
+        element.textContent = "🍔";
+        element.title = restaurant.name;
+        element.setAttribute(
+          "aria-label",
+          "View " + restaurant.name
+        );
+
+        element.addEventListener("click", () => {
+          showRestaurant(restaurant);
+
+          map.flyTo({
+            center: [restaurant.lng, restaurant.lat],
+            zoom: Math.max(map.getZoom(), 12)
+          });
+        });
+
+        const marker = new maplibregl.Marker({
+          element,
+          anchor: "center"
+        })
+          .setLngLat([restaurant.lng, restaurant.lat])
+          .addTo(map);
+
+        markers.push(marker);
+      });
+
+      if (filtered.length === 0) {
+        closePanel();
+      }
+    }
+
+    search.addEventListener("input", renderMarkers);
+
+    document.querySelectorAll(
+      ".filters button"
+    ).forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(
+          ".filters button"
+        ).forEach(b => b.classList.remove("active"));
+
+        button.classList.add("active");
+
+        activeCity = button.dataset.city;
+
+        const cityViews = {
+          Manchester: [-2.2446, 53.4808],
+          Liverpool: [-2.9785, 53.4084],
+          Warrington: [-2.5874, 53.3900]
+        };
+
+        if (activeCity === "all") {
+          map.flyTo({
+            center: [-2.85, 53.43],
+            zoom: 9
+          });
+        } else {
+          map.flyTo({
+            center: cityViews[activeCity],
+            zoom: 12
+          });
+        }
+
+        closePanel();
+        renderMarkers();
+      });
+    });
+
+    map.on("load", renderMarkers);
+  </script>
 
   <script
     async
