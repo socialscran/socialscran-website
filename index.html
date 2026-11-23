@@ -1,0 +1,232 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SocialScran | Food Review Test</title>
+
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      color: #202124;
+      background: #fffaf5;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    header {
+      background: #171717;
+      color: white;
+      padding: 25px 18px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+    }
+
+    header h1 span {
+      color: #ff8247;
+    }
+
+    header p {
+      color: #ddd;
+      margin: 8px 0 0;
+    }
+
+    main {
+      max-width: 1040px;
+      margin: 32px auto;
+      padding: 0 18px;
+    }
+
+    .intro {
+      margin-bottom: 26px;
+    }
+
+    .intro p {
+      line-height: 1.55;
+      color: #555;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(
+        auto-fit,
+        minmax(min(100%, 320px), 1fr)
+      );
+      gap: 24px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #e8e1d8;
+      border-radius: 16px;
+      padding: 18px;
+      min-width: 0;
+      box-shadow: 0 5px 22px #0000000a;
+    }
+
+    .card h2 {
+      margin: 0 0 14px;
+      font-size: 1.2rem;
+    }
+
+    .embed {
+      min-height: 380px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow: hidden;
+    }
+
+    .embed iframe {
+      width: 100%;
+      max-width: 325px;
+      height: 580px;
+      border: 0;
+      border-radius: 12px;
+    }
+
+    .instagram-media {
+      min-width: 0 !important;
+      width: 100% !important;
+      max-width: 540px !important;
+    }
+
+    .fallback {
+      margin: 14px 0 0;
+      font-size: 0.92rem;
+    }
+
+    .fallback a {
+      color: #a83f16;
+      overflow-wrap: anywhere;
+    }
+
+    .note {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 25px;
+      line-height: 1.55;
+    }
+
+    footer {
+      text-align: center;
+      color: #777;
+      padding: 35px 18px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>Social<span>Scran</span> 🍔</h1>
+    <p>See it. Crave it. Find it.</p>
+  </header>
+
+  <main>
+
+    <section class="intro">
+      <h2>Food review video test</h2>
+      <p>
+        We're testing TikTok and Instagram reviews
+        side by side before building the restaurant
+        discovery map.
+      </p>
+    </section>
+
+    <div class="grid">
+
+      <!-- TikTok Review -->
+
+      <article class="card">
+        <h2>TikTok review</h2>
+
+        <div class="embed">
+          <iframe
+            src="https://www.tiktok.com/embed/v2/7709913534401973526"
+            title="TikTok food review"
+            allow="encrypted-media; fullscreen; picture-in-picture"
+            allowfullscreen
+            loading="lazy"
+            referrerpolicy="strict-origin-when-cross-origin">
+          </iframe>
+        </div>
+
+        <p class="fallback">
+          Video not showing?
+          <a
+            href="https://www.tiktok.com/@jasinliverpool/video/7709913534401973526"
+            target="_blank"
+            rel="noopener noreferrer">
+            Open the original TikTok
+          </a>
+        </p>
+      </article>
+
+      <!-- Instagram Review -->
+
+      <article class="card">
+        <h2>Instagram review</h2>
+
+        <div class="embed">
+          <blockquote
+            class="instagram-media"
+            data-instgrm-permalink="https://www.instagram.com/reel/Df7uBGJBxzd/"
+            data-instgrm-version="14">
+
+            <a
+              href="https://www.instagram.com/reel/Df7uBGJBxzd/"
+              target="_blank"
+              rel="noopener noreferrer">
+              View this Instagram Reel
+            </a>
+
+          </blockquote>
+        </div>
+
+        <p class="fallback">
+          Video not showing?
+          <a
+            href="https://www.instagram.com/reel/Df7uBGJBxzd/"
+            target="_blank"
+            rel="noopener noreferrer">
+            Open the original Instagram Reel
+          </a>
+        </p>
+      </article>
+
+    </div>
+
+    <p class="note">
+      This is a public prototype, not the finished
+      SocialScran website. Video availability depends
+      on the creator's settings and each platform's
+      embedding rules. If an embed stays blank, use
+      the original-post link to check the video.
+    </p>
+
+  </main>
+
+  <footer>
+    SocialScran · Early website prototype
+  </footer>
+
+  <script
+    async
+    src="https://www.instagram.com/embed.js">
+  </script>
+
+</body>
+</html>
