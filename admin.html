@@ -1,0 +1,2386 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>SocialScran | Admin Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    font-family: Arial, Helvetica, sans-serif;
+    color-scheme: dark;
+    --orange: #ff7540;
+    --background: #111111;
+    --card: #1c1c1c;
+    --border: #333333;
+    --text: #ffffff;
+    --muted: #aaaaaa;
+}
+
+body {
+    margin: 0;
+    background: var(--background);
+    color: var(--text);
+}
+
+button, input, select, textarea {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+header {
+    background: #171717;
+    border-bottom: 1px solid var(--border);
+    padding: 18px;
+}
+
+.header-inner {
+    max-width: 1100px;
+    margin: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.brand {
+    font-size: 25px;
+    font-weight: 800;
+}
+
+.brand span {
+    color: var(--orange);
+}
+
+.version {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+main {
+    max-width: 1100px;
+    margin: auto;
+    padding: 16px;
+}
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 16px;
+}
+
+.login-card {
+    max-width: 420px;
+    margin: 45px auto;
+}
+
+h1, h2, h3 {
+    margin-top: 0;
+}
+
+p {
+    line-height: 1.5;
+}
+
+.muted {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+label {
+    display: block;
+    margin: 15px 0 7px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 13px;
+    border-radius: 10px;
+    background: #141414;
+    border: 1px solid #444;
+    color: white;
+    font-size: 16px;
+}
+
+textarea {
+    min-height: 90px;
+    resize: vertical;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: 2px solid var(--orange);
+    outline-offset: 1px;
+}
+
+.btn {
+    border: 0;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-weight: bold;
+    background: var(--orange);
+    color: #111;
+}
+
+.btn-secondary {
+    background: #303030;
+    color: white;
+}
+
+.btn-danger {
+    background: #402020;
+    color: #ff9999;
+}
+
+.full {
+    width: 100%;
+    margin-top: 18px;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 15px 8px;
+    text-align: center;
+}
+
+.stat-number {
+    color: var(--orange);
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 5px;
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    margin-bottom: 18px;
+}
+
+.tab {
+    white-space: nowrap;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: white;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-weight: bold;
+}
+
+.tab.active {
+    background: var(--orange);
+    color: #111;
+    border-color: var(--orange);
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.section-header h2 {
+    margin: 0;
+    font-size: 22px;
+}
+
+.record {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.record h3 {
+    margin-bottom: 7px;
+    overflow-wrap: anywhere;
+}
+
+.record p {
+    margin: 5px 0;
+    overflow-wrap: anywhere;
+}
+
+.status {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 7px;
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+.approved {
+    background: #173b28;
+    color: #82e5a6;
+}
+
+.pending {
+    background: #44351b;
+    color: #ffd080;
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 15px;
+}
+
+.actions button {
+    flex: 1;
+    min-width: 75px;
+    font-size: 13px;
+}
+
+.notice {
+    padding: 13px;
+    background: #292929;
+    border-radius: 10px;
+    margin: 12px 0;
+    overflow-wrap: anywhere;
+}
+
+.error {
+    background: #402020;
+    color: #ffaaaa;
+}
+
+.success {
+    background: #173b28;
+    color: #82e5a6;
+}
+
+.search {
+    margin-bottom: 15px;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+}
+
+.modal-content {
+    width: 100%;
+    max-width: 550px;
+    max-height: 90dvh;
+    overflow-y: auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 20px;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 22px;
+}
+
+.close {
+    background: #333;
+    color: white;
+    border: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    font-size: 22px;
+}
+
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 18px 0;
+}
+
+.checkbox-row input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--orange);
+}
+
+.checkbox-row label {
+    margin: 0;
+}
+
+.website-link {
+    color: var(--orange);
+    text-decoration: none;
+    font-size: 14px;
+}
+
+footer {
+    text-align: center;
+    padding: 25px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+@media (min-width: 750px) {
+    .records {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .record {
+        margin: 0;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <div class="header-inner">
+        <div>
+            <div class="brand">Social<span>Scran</span> 🍔</div>
+            <div class="version">V0.8 · Admin Dashboard</div>
+        </div>
+
+        <button id="logout-button"
+            class="btn btn-secondary"
+            hidden>
+            Log out
+        </button>
+    </div>
+</header>
+
+<main>
+
+    <section id="login-section">
+
+        <div class="card login-card">
+
+            <h1>Admin login</h1>
+
+            <p class="muted">
+                Sign in to manage SocialScran.
+            </p>
+
+            <form id="login-form">
+
+                <label for="email">Email address</label>
+
+                <input
+                    id="email"
+                    type="email"
+                    autocomplete="username"
+                    required
+                >
+
+                <label for="password">Password</label>
+
+                <input
+                    id="password"
+                    type="password"
+                    autocomplete="current-password"
+                    required
+                >
+
+                <button
+                    id="login-button"
+                    class="btn full"
+                    type="submit">
+                    Log in
+                </button>
+
+            </form>
+
+            <div id="login-message"
+                class="notice"
+                role="status"
+                hidden>
+            </div>
+
+            <p>
+                <a class="website-link" href="./">
+                    ← Back to SocialScran
+                </a>
+            </p>
+
+        </div>
+
+    </section>
+
+    <section id="dashboard" hidden>
+
+        <div class="card">
+
+            <h2>Dashboard</h2>
+
+            <p class="muted">
+                Manage your restaurants, creators and video reviews.
+            </p>
+
+            <a class="website-link"
+                href="./"
+                target="_blank"
+                rel="noopener">
+                Open public website ↗
+            </a>
+
+        </div>
+
+        <div class="stats">
+
+            <div class="stat">
+                <div class="stat-number" id="restaurant-count">0</div>
+                <div class="stat-label">Restaurants</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-number" id="creator-count">0</div>
+                <div class="stat-label">Creators</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-number" id="video-count">0</div>
+                <div class="stat-label">Videos</div>
+            </div>
+
+        </div>
+
+        <div class="card">
+
+            <strong>Awaiting approval</strong>
+
+            <p id="pending-count" class="muted">
+                Loading...
+            </p>
+
+        </div>
+
+        <div class="tabs">
+
+            <button class="tab active"
+                data-tab="restaurants">
+                🍔 Restaurants
+            </button>
+
+            <button class="tab"
+                data-tab="creators">
+                👤 Creators
+            </button>
+
+            <button class="tab"
+                data-tab="video_reviews">
+                🎬 Videos
+            </button>
+
+        </div>
+
+        <div class="section-header">
+
+            <h2 id="section-title">Restaurants</h2>
+
+            <button id="add-button" class="btn">
+                + Add
+            </button>
+
+        </div>
+
+        <input
+            id="search"
+            class="search"
+            type="search"
+            placeholder="Search records..."
+        >
+
+        <select id="status-filter" class="search">
+            <option value="all">All records</option>
+            <option value="approved">Approved</option>
+            <option value="pending">Pending approval</option>
+        </select>
+
+        <button
+            id="refresh-button"
+            class="btn btn-secondary">
+            ↻ Refresh records
+        </button>
+
+        <div id="dashboard-message"
+            class="notice"
+            role="status"
+            hidden>
+        </div>
+
+        <div style="height:16px"></div>
+
+        <div id="records" class="records"></div>
+
+    </section>
+
+</main>
+
+<div id="editor-modal"
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="editor-title"
+    hidden>
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+
+            <h2 id="editor-title">Add record</h2>
+
+            <button
+                id="close-editor"
+                class="close"
+                aria-label="Close">
+                ×
+            </button>
+
+        </div>
+
+        <form id="editor-form">
+
+            <div id="editor-fields"></div>
+
+            <div id="editor-message"
+                class="notice"
+                role="status"
+                hidden>
+            </div>
+
+            <button
+                id="save-button"
+                class="btn full"
+                type="submit">
+                Save record
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+<footer>
+    SocialScran · Private Administration
+</footer>
+
+<script>
+
+/* =========================================
+   SUPABASE CONFIGURATION
+
+   Copy your existing Supabase project URL
+   and public API key from index.html.
+
+   NEVER use a service-role or secret key.
+========================================= */
+
+const SUPABASE_URL = "https://ptpeqcbuiexoogsqskat.supabase.co"; 
+
+const SUPABASE_KEY = "sb_publishable_EHd_48_rqLUurrLqHY_DeQ_i2oBwa9J";
+
+const ADMIN_UID = "7dc5e22b-4675-4e31-b31b-4d48ff3d3eb3";
+
+const $ = id => document.getElementById(id);
+
+let db = null;
+
+let activeTab = "restaurants";
+
+let editingId = null;
+
+let editingTable = null;
+
+let busy = false;
+
+let loadVersion = 0;
+
+let data = {
+    restaurants: [],
+    creators: [],
+    video_reviews: []
+};
+
+const titles = {
+    restaurants: "Restaurants",
+    creators: "Creators",
+    video_reviews: "Video reviews"
+};
+
+const singular = {
+    restaurants: "restaurant",
+    creators: "creator",
+    video_reviews: "video"
+};
+
+
+/* =========================================
+   HELPERS
+========================================= */
+
+function showMessage(id, message, type = "") {
+
+    const element = $(id);
+
+    element.textContent = message;
+
+    element.className = "notice " + type;
+
+    element.hidden = false;
+}
+
+function hideMessage(id) {
+
+    $(id).hidden = true;
+}
+
+function createElement(tag, text, className) {
+
+    const element = document.createElement(tag);
+
+    if (text !== undefined && text !== null) {
+        element.textContent = text;
+    }
+
+    if (className) {
+        element.className = className;
+    }
+
+    return element;
+}
+
+function makeButton(text, className, action) {
+
+    const button = createElement(
+        "button",
+        text,
+        className
+    );
+
+    button.type = "button";
+
+    button.addEventListener("click", action);
+
+    return button;
+}
+
+function errorText(error) {
+
+    return error?.message || "An unexpected error occurred.";
+}
+
+function isAdmin(session) {
+
+    return session?.user?.id === ADMIN_UID;
+}
+
+async function requireAdmin() {
+
+    const { data: result, error } =
+        await db.auth.getUser();
+
+    if (error) {
+        throw error;
+    }
+
+    if (result.user?.id !== ADMIN_UID) {
+        throw new Error("Admin access required.");
+    }
+}
+
+function clearData() {
+
+    loadVersion++;
+
+    data = {
+        restaurants: [],
+        creators: [],
+        video_reviews: []
+    };
+
+    $("records").replaceChildren();
+
+    updateStats();
+}
+
+
+/* =========================================
+   AUTHENTICATION
+========================================= */
+
+async function showDashboard(session) {
+
+    if (!isAdmin(session)) {
+
+        $("dashboard").hidden = true;
+
+        $("login-section").hidden = false;
+
+        $("logout-button").hidden = true;
+
+        $("editor-modal").hidden = true;
+
+        clearData();
+
+        if (session) {
+
+            await db.auth.signOut();
+
+            showMessage(
+                "login-message",
+                "This account does not have admin access.",
+                "error"
+            );
+        }
+
+        return;
+    }
+
+    $("login-section").hidden = true;
+
+    $("dashboard").hidden = false;
+
+    $("logout-button").hidden = false;
+
+    $("password").value = "";
+
+    hideMessage("login-message");
+
+    await loadData();
+}
+
+$("login-form").addEventListener(
+    "submit",
+    async event => {
+
+        event.preventDefault();
+
+        if (!db) {
+            return;
+        }
+
+        hideMessage("login-message");
+
+        $("login-button").disabled = true;
+
+        $("login-button").textContent = "Signing in...";
+
+        try {
+
+            const { data: result, error } =
+                await db.auth.signInWithPassword({
+
+                    email: $("email").value.trim(),
+
+                    password: $("password").value
+
+                });
+
+            if (error) {
+                throw error;
+            }
+
+            await showDashboard(result.session);
+
+        } catch (error) {
+
+            showMessage(
+                "login-message",
+                errorText(error),
+                "error"
+            );
+
+        } finally {
+
+            $("password").value = "";
+
+            $("login-button").disabled = false;
+
+            $("login-button").textContent = "Log in";
+        }
+    }
+);
+
+$("logout-button").addEventListener(
+    "click",
+    async () => {
+
+        $("logout-button").disabled = true;
+
+        try {
+
+            const { error } = await db.auth.signOut();
+
+            if (error) {
+                throw error;
+            }
+
+            await showDashboard(null);
+
+        } catch (error) {
+
+            showMessage(
+                "dashboard-message",
+                errorText(error),
+                "error"
+            );
+
+        } finally {
+
+            $("logout-button").disabled = false;
+        }
+    }
+);
+
+
+/* =========================================
+   DATABASE LOADING
+========================================= */
+
+async function loadData() {
+
+    const requestVersion = ++loadVersion;
+
+    $("refresh-button").disabled = true;
+
+    showMessage(
+        "dashboard-message",
+        "Loading database records..."
+    );
+
+    try {
+
+        await requireAdmin();
+
+        const results = await Promise.all([
+
+            db.from("restaurants")
+                .select("*")
+                .order("created_at", {
+                    ascending: false
+                }),
+
+            db.from("creators")
+                .select("*")
+                .order("created_at", {
+                    ascending: false
+                }),
+
+            db.from("video_reviews")
+                .select("*")
+                .order("created_at", {
+                    ascending: false
+                })
+
+        ]);
+
+        if (requestVersion !== loadVersion) {
+            return;
+        }
+
+        for (const result of results) {
+
+            if (result.error) {
+                throw result.error;
+            }
+        }
+
+        data.restaurants = results[0].data || [];
+
+        data.creators = results[1].data || [];
+
+        data.video_reviews = results[2].data || [];
+
+        updateStats();
+
+        renderRecords();
+
+        hideMessage("dashboard-message");
+
+    } catch (error) {
+
+        if (requestVersion === loadVersion) {
+
+            showMessage(
+                "dashboard-message",
+                errorText(error),
+                "error"
+            );
+        }
+
+    } finally {
+
+        $("refresh-button").disabled = false;
+    }
+}
+
+function updateStats() {
+
+    $("restaurant-count").textContent =
+        data.restaurants.length;
+
+    $("creator-count").textContent =
+        data.creators.length;
+
+    $("video-count").textContent =
+        data.video_reviews.length;
+
+    const pending = [
+
+        ...data.restaurants,
+
+        ...data.creators,
+
+        ...data.video_reviews
+
+    ].filter(record => !record.approved).length;
+
+    $("pending-count").textContent =
+        pending + " records awaiting approval";
+}
+
+$("refresh-button").addEventListener(
+    "click",
+    loadData
+);
+
+
+/* =========================================
+   TABS AND SEARCH
+========================================= */
+
+document.querySelectorAll(".tab").forEach(button => {
+
+    button.addEventListener("click", () => {
+
+        activeTab = button.dataset.tab;
+
+        document.querySelectorAll(".tab").forEach(tab => {
+
+            tab.classList.toggle(
+                "active",
+                tab === button
+            );
+        });
+
+        $("section-title").textContent =
+            titles[activeTab];
+
+        $("search").value = "";
+
+        $("status-filter").value = "all";
+
+        renderRecords();
+    });
+});
+
+$("search").addEventListener(
+    "input",
+    renderRecords
+);
+
+$("status-filter").addEventListener(
+    "change",
+    renderRecords
+);
+
+function restaurantName(id) {
+
+    return data.restaurants.find(
+        restaurant => restaurant.id === id
+    )?.name || "Unknown restaurant";
+}
+
+function creatorName(id) {
+
+    return data.creators.find(
+        creator => creator.id === id
+    )?.display_name || "Unknown creator";
+}
+
+function recordTitle(table, record) {
+
+    if (table === "restaurants") {
+        return record.name;
+    }
+
+    if (table === "creators") {
+        return record.display_name;
+    }
+
+    return record.title ||
+        restaurantName(record.restaurant_id);
+}
+
+
+/* =========================================
+   RENDER RECORDS
+========================================= */
+
+function renderRecords() {
+
+    const container = $("records");
+
+    container.replaceChildren();
+
+    const query =
+        $("search").value.trim().toLowerCase();
+
+    const status = $("status-filter").value;
+
+    const table = activeTab;
+
+    const records = data[table].filter(record => {
+
+        if (status === "approved" && !record.approved) {
+            return false;
+        }
+
+        if (status === "pending" && record.approved) {
+            return false;
+        }
+
+        const searchable = [
+
+            recordTitle(table, record),
+
+            record.name,
+
+            record.city,
+
+            record.address,
+
+            record.category,
+
+            record.display_name,
+
+            record.tiktok_username,
+
+            record.instagram_username,
+
+            record.platform,
+
+            record.video_url,
+
+            record.creator_id
+                ? creatorName(record.creator_id)
+                : ""
+
+        ].join(" ").toLowerCase();
+
+        return searchable.includes(query);
+    });
+
+    if (!records.length) {
+
+        container.append(
+            createElement(
+                "p",
+                "No matching records found.",
+                "muted"
+            )
+        );
+
+        return;
+    }
+
+    records.forEach(record => {
+
+        const card = createElement(
+            "article",
+            null,
+            "record"
+        );
+
+        card.append(
+            createElement(
+                "h3",
+                recordTitle(table, record)
+            )
+        );
+
+        if (table === "restaurants") {
+
+            card.append(
+                createElement(
+                    "p",
+                    [record.city, record.category]
+                        .filter(Boolean)
+                        .join(" · "),
+                    "muted"
+                )
+            );
+
+            card.append(
+                createElement(
+                    "p",
+                    record.address || "No address"
+                )
+            );
+
+            const videos = data.video_reviews.filter(
+                video =>
+                    video.restaurant_id === record.id
+            );
+
+            card.append(
+                createElement(
+                    "p",
+                    videos.length + " video reviews",
+                    "muted"
+                )
+            );
+        }
+
+        if (table === "creators") {
+
+            card.append(
+                createElement(
+                    "p",
+                    "TikTok: " +
+                    (record.tiktok_username || "Not added"),
+                    "muted"
+                )
+            );
+
+            card.append(
+                createElement(
+                    "p",
+                    "Instagram: " +
+                    (record.instagram_username || "Not added"),
+                    "muted"
+                )
+            );
+
+            card.append(
+                createElement(
+                    "p",
+                    record.verified
+                        ? "✓ Verified creator"
+                        : "Not verified",
+                    "muted"
+                )
+            );
+        }
+
+        if (table === "video_reviews") {
+
+            card.append(
+                createElement(
+                    "p",
+                    "Platform: " + record.platform,
+                    "muted"
+                )
+            );
+
+            card.append(
+                createElement(
+                    "p",
+                    "Creator: " +
+                    creatorName(record.creator_id),
+                    "muted"
+                )
+            );
+
+            card.append(
+                createElement(
+                    "p",
+                    "Restaurant: " +
+                    restaurantName(record.restaurant_id),
+                    "muted"
+                )
+            );
+
+            try {
+
+                const url = new URL(record.video_url);
+
+                const allowedHosts = [
+                    "www.tiktok.com",
+                    "tiktok.com",
+                    "www.instagram.com",
+                    "instagram.com"
+                ];
+
+                if (
+                    url.protocol === "https:" &&
+                    allowedHosts.includes(url.hostname)
+                ) {
+
+                    const link = createElement(
+                        "a",
+                        "Open original video ↗",
+                        "website-link"
+                    );
+
+                    link.href = url.href;
+
+                    link.target = "_blank";
+
+                    link.rel = "noopener noreferrer";
+
+                    card.append(link);
+                }
+
+            } catch {}
+        }
+
+        card.append(
+            createElement(
+                "div",
+                record.approved
+                    ? "Approved"
+                    : "Pending approval",
+                "status " +
+                (record.approved ? "approved" : "pending")
+            )
+        );
+
+        const actions = createElement(
+            "div",
+            null,
+            "actions"
+        );
+
+        actions.append(
+
+            makeButton(
+                "Edit",
+                "btn btn-secondary",
+                () => openEditor(table, record)
+            ),
+
+            makeButton(
+                record.approved
+                    ? "Unapprove"
+                    : "Approve",
+                "btn",
+                () => toggleApproval(table, record)
+            ),
+
+            makeButton(
+                "Delete",
+                "btn btn-danger",
+                () => deleteRecord(table, record)
+            )
+        );
+
+        card.append(actions);
+
+        container.append(card);
+    });
+}
+
+
+/* =========================================
+   FORM FIELD BUILDERS
+========================================= */
+
+function addField(
+    name,
+    labelText,
+    value = "",
+    type = "text",
+    required = false,
+    options = []
+) {
+
+    const container = $("editor-fields");
+
+    const label = createElement("label", labelText);
+
+    label.htmlFor = "field-" + name;
+
+    let input;
+
+    if (type === "select") {
+
+        input = document.createElement("select");
+
+        const empty = document.createElement("option");
+
+        empty.value = "";
+
+        empty.textContent = "Select an option";
+
+        input.append(empty);
+
+        options.forEach(option => {
+
+            const item = document.createElement("option");
+
+            item.value = option.value;
+
+            item.textContent = option.label;
+
+            input.append(item);
+        });
+
+    } else if (type === "textarea") {
+
+        input = document.createElement("textarea");
+
+    } else {
+
+        input = document.createElement("input");
+
+        input.type = type;
+    }
+
+    input.id = "field-" + name;
+
+    input.name = name;
+
+    input.value = value ?? "";
+
+    input.required = required;
+
+    if (type === "number") {
+        input.step = "any";
+    }
+
+    container.append(label, input);
+
+    return input;
+}
+
+function addCheckbox(name, labelText, checked) {
+
+    const row = createElement(
+        "div",
+        null,
+        "checkbox-row"
+    );
+
+    const input = document.createElement("input");
+
+    input.type = "checkbox";
+
+    input.id = "field-" + name;
+
+    input.name = name;
+
+    input.checked = Boolean(checked);
+
+    const label = createElement("label", labelText);
+
+    label.htmlFor = input.id;
+
+    row.append(input, label);
+
+    $("editor-fields").append(row);
+}
+
+function addHelp(text) {
+
+    $("editor-fields").append(
+        createElement("p", text, "muted")
+    );
+}
+
+
+/* =========================================
+   ADD / EDIT RESTAURANTS
+========================================= */
+
+function restaurantFields(record) {
+
+    addField(
+        "name",
+        "Restaurant name",
+        record.name,
+        "text",
+        true
+    );
+
+    addField(
+        "category",
+        "Food category",
+        record.category,
+        "text",
+        true
+    );
+
+    addField(
+        "city",
+        "City",
+        record.city,
+        "text",
+        true
+    );
+
+    addField(
+        "address",
+        "Full address",
+        record.address,
+        "text",
+        true
+    );
+
+    addField(
+        "postcode",
+        "Postcode",
+        record.postcode
+    );
+
+    const latitude = addField(
+        "latitude",
+        "Latitude",
+        record.latitude,
+        "number",
+        true
+    );
+
+    latitude.min = -90;
+
+    latitude.max = 90;
+
+    const longitude = addField(
+        "longitude",
+        "Longitude",
+        record.longitude,
+        "number",
+        true
+    );
+
+    longitude.min = -180;
+
+    longitude.max = 180;
+
+    addHelp(
+        "Use verified coordinates from a map. " +
+        "Latitude and longitude determine the restaurant pin."
+    );
+
+    addField(
+        "opening_hours",
+        "Opening hours",
+        record.opening_hours,
+        "textarea"
+    );
+
+    addField(
+        "description",
+        "Description",
+        record.description,
+        "textarea"
+    );
+
+    addField(
+        "website_url",
+        "Website URL",
+        record.website_url,
+        "url"
+    );
+
+    addField(
+        "image_url",
+        "Image URL",
+        record.image_url,
+        "url"
+    );
+
+    addCheckbox(
+        "approved",
+        "Approved for public display",
+        record.approved
+    );
+}
+
+
+/* =========================================
+   ADD / EDIT CREATORS
+========================================= */
+
+function creatorFields(record) {
+
+    addField(
+        "display_name",
+        "Creator display name",
+        record.display_name,
+        "text",
+        true
+    );
+
+    addField(
+        "tiktok_username",
+        "TikTok username",
+        record.tiktok_username
+    );
+
+    addField(
+        "instagram_username",
+        "Instagram username",
+        record.instagram_username
+    );
+
+    addField(
+        "profile_image_url",
+        "Profile image URL",
+        record.profile_image_url,
+        "url"
+    );
+
+    addCheckbox(
+        "verified",
+        "Verified creator",
+        record.verified
+    );
+
+    addCheckbox(
+        "approved",
+        "Approved creator",
+        record.approved
+    );
+}
+
+
+/* =========================================
+   ADD / EDIT VIDEOS
+========================================= */
+
+function videoFields(record) {
+
+    addField(
+        "restaurant_id",
+        "Restaurant",
+        record.restaurant_id,
+        "select",
+        true,
+        data.restaurants.map(restaurant => ({
+
+            value: restaurant.id,
+
+            label:
+                restaurant.name +
+                " · " +
+                restaurant.city
+
+        }))
+    );
+
+    addField(
+        "creator_id",
+        "Creator",
+        record.creator_id,
+        "select",
+        true,
+        data.creators.map(creator => ({
+
+            value: creator.id,
+
+            label: creator.display_name
+
+        }))
+    );
+
+    addField(
+        "platform",
+        "Video platform",
+        record.platform || "tiktok",
+        "select",
+        true,
+        [
+
+            {
+                value: "tiktok",
+                label: "TikTok"
+            },
+
+            {
+                value: "instagram",
+                label: "Instagram"
+            }
+
+        ]
+    );
+
+    addField(
+        "video_url",
+        "Original video URL",
+        record.video_url,
+        "url",
+        true
+    );
+
+    addHelp(
+        "Paste the full TikTok video or Instagram Reel URL. " +
+        "The video ID will be extracted automatically. " +
+        "Shortened TikTok links must be opened first."
+    );
+
+    addField(
+        "title",
+        "Video title (optional)",
+        record.title
+    );
+
+    addCheckbox(
+        "approved",
+        "Approved for public display",
+        record.approved
+    );
+}
+
+
+/* =========================================
+   EDITOR MODAL
+========================================= */
+
+function openEditor(table, record = {}) {
+
+    if (busy) {
+        return;
+    }
+
+    if (
+        table === "video_reviews" &&
+        (!data.restaurants.length || !data.creators.length)
+    ) {
+
+        showMessage(
+            "dashboard-message",
+            "Add a restaurant and creator before adding a video.",
+            "error"
+        );
+
+        return;
+    }
+
+    editingTable = table;
+
+    editingId = record.id || null;
+
+    $("editor-title").textContent =
+
+        (editingId ? "Edit " : "Add ") +
+        singular[table];
+
+    $("editor-fields").replaceChildren();
+
+    hideMessage("editor-message");
+
+    if (table === "restaurants") {
+        restaurantFields(record);
+    }
+
+    if (table === "creators") {
+        creatorFields(record);
+    }
+
+    if (table === "video_reviews") {
+        videoFields(record);
+    }
+
+    $("editor-modal").hidden = false;
+}
+
+function closeEditor() {
+
+    if (busy) {
+        return;
+    }
+
+    $("editor-modal").hidden = true;
+
+    $("editor-fields").replaceChildren();
+
+    editingId = null;
+
+    editingTable = null;
+}
+
+$("add-button").addEventListener(
+    "click",
+    () => openEditor(activeTab)
+);
+
+$("close-editor").addEventListener(
+    "click",
+    closeEditor
+);
+
+$("editor-modal").addEventListener(
+    "click",
+    event => {
+
+        if (event.target === $("editor-modal")) {
+            closeEditor();
+        }
+    }
+);
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if (event.key === "Escape") {
+            closeEditor();
+        }
+    }
+);
+
+
+/* =========================================
+   VIDEO URL VALIDATION
+========================================= */
+
+function parseVideo(platform, rawUrl) {
+
+    const url = new URL(rawUrl);
+
+    if (url.protocol !== "https:") {
+
+        throw new Error(
+            "Video links must use HTTPS."
+        );
+    }
+
+    if (platform === "tiktok") {
+
+        if (
+            !["www.tiktok.com", "tiktok.com"]
+                .includes(url.hostname)
+        ) {
+
+            throw new Error(
+                "Use the full TikTok video URL."
+            );
+        }
+
+        const match = url.pathname.match(
+            /^\/(@[^/]+)\/video\/(\d+)\/?$/
+        );
+
+        if (!match) {
+
+            throw new Error(
+                "Could not find a TikTok video ID. " +
+                "Open the original video and copy its full URL."
+            );
+        }
+
+        return {
+
+            id: match[2],
+
+            url:
+                "https://www.tiktok.com/" +
+                match[1] +
+                "/video/" +
+                match[2]
+
+        };
+    }
+
+    if (platform === "instagram") {
+
+        if (
+            !["www.instagram.com", "instagram.com"]
+                .includes(url.hostname)
+        ) {
+
+            throw new Error(
+                "Use a valid Instagram Reel URL."
+            );
+        }
+
+        const match = url.pathname.match(
+            /^\/(?:reel|reels|p)\/([A-Za-z0-9_-]+)\/?$/
+        );
+
+        if (!match) {
+
+            throw new Error(
+                "Could not find an Instagram video ID."
+            );
+        }
+
+        return {
+
+            id: match[1],
+
+            url:
+                "https://www.instagram.com/reel/" +
+                match[1] +
+                "/"
+
+        };
+    }
+
+    throw new Error("Unsupported video platform.");
+}
+
+
+/* =========================================
+   FORM DATA
+========================================= */
+
+function field(name) {
+
+    return $("field-" + name)?.value.trim() || "";
+}
+
+function checked(name) {
+
+    return Boolean($("field-" + name)?.checked);
+}
+
+function optional(name) {
+
+    return field(name) || null;
+}
+
+function optionalUrl(name) {
+
+    const value = optional(name);
+
+    if (!value) {
+        return null;
+    }
+
+    const url = new URL(value);
+
+    if (url.protocol !== "https:") {
+
+        throw new Error(
+            "Website and image links must use HTTPS."
+        );
+    }
+
+    return url.href;
+}
+
+function buildPayload(table) {
+
+    if (table === "restaurants") {
+
+        const latitude = Number(field("latitude"));
+
+        const longitude = Number(field("longitude"));
+
+        if (
+            !field("latitude") ||
+            !field("longitude") ||
+            !Number.isFinite(latitude) ||
+            !Number.isFinite(longitude) ||
+            latitude < -90 ||
+            latitude > 90 ||
+            longitude < -180 ||
+            longitude > 180
+        ) {
+
+            throw new Error(
+                "Enter valid restaurant coordinates."
+            );
+        }
+
+        const payload = {
+
+            name: field("name"),
+
+            category: field("category"),
+
+            city: field("city"),
+
+            address: field("address"),
+
+            postcode: optional("postcode"),
+
+            latitude,
+
+            longitude,
+
+            opening_hours: optional("opening_hours"),
+
+            description: optional("description"),
+
+            website_url: optionalUrl("website_url"),
+
+            image_url: optionalUrl("image_url"),
+
+            approved: checked("approved")
+
+        };
+
+        if (!editingId) {
+            payload.popularity = "standard";
+        }
+
+        return payload;
+    }
+
+    if (table === "creators") {
+
+        return {
+
+            display_name: field("display_name"),
+
+            tiktok_username:
+                field("tiktok_username")
+                    .replace(/^@+/, "") || null,
+
+            instagram_username:
+                field("instagram_username")
+                    .replace(/^@+/, "") || null,
+
+            profile_image_url:
+                optionalUrl("profile_image_url"),
+
+            verified: checked("verified"),
+
+            approved: checked("approved")
+
+        };
+    }
+
+    if (table === "video_reviews") {
+
+        const platform = field("platform");
+
+        const video = parseVideo(
+            platform,
+            field("video_url")
+        );
+
+        const duplicate = data.video_reviews.find(
+            record =>
+                record.id !== editingId &&
+                record.restaurant_id === field("restaurant_id") &&
+                record.platform === platform &&
+                record.platform_video_id === video.id
+        );
+
+        if (duplicate) {
+
+            throw new Error(
+                "This video is already linked to this restaurant."
+            );
+        }
+
+        return {
+
+            restaurant_id: field("restaurant_id"),
+
+            creator_id: field("creator_id"),
+
+            platform,
+
+            video_url: video.url,
+
+            platform_video_id: video.id,
+
+            title: optional("title"),
+
+            approved: checked("approved")
+
+        };
+    }
+
+    throw new Error("Unknown record type.");
+}
+
+
+/* =========================================
+   SAVE RECORD
+========================================= */
+
+$("editor-form").addEventListener(
+    "submit",
+    async event => {
+
+        event.preventDefault();
+
+        if (busy) {
+            return;
+        }
+
+        busy = true;
+
+        $("save-button").disabled = true;
+
+        $("save-button").textContent = "Saving...";
+
+        hideMessage("editor-message");
+
+        try {
+
+            await requireAdmin();
+
+            const table = editingTable;
+
+            const payload = buildPayload(table);
+
+            let result;
+
+            if (editingId) {
+
+                result = await db
+                    .from(table)
+                    .update(payload)
+                    .eq("id", editingId)
+                    .select("id")
+                    .single();
+
+            } else {
+
+                result = await db
+                    .from(table)
+                    .insert(payload)
+                    .select("id")
+                    .single();
+            }
+
+            if (result.error) {
+                throw result.error;
+            }
+
+            busy = false;
+
+            closeEditor();
+
+            await loadData();
+
+            if ($("dashboard-message").hidden) {
+
+                showMessage(
+                    "dashboard-message",
+                    "Record saved successfully.",
+                    "success"
+                );
+            }
+
+        } catch (error) {
+
+            showMessage(
+                "editor-message",
+                errorText(error),
+                "error"
+            );
+
+        } finally {
+
+            busy = false;
+
+            $("save-button").disabled = false;
+
+            $("save-button").textContent = "Save record";
+        }
+    }
+);
+
+
+/* =========================================
+   APPROVAL MANAGEMENT
+========================================= */
+
+async function toggleApproval(table, record) {
+
+    if (busy) {
+        return;
+    }
+
+    busy = true;
+
+    try {
+
+        await requireAdmin();
+
+        const { error } = await db
+            .from(table)
+            .update({
+
+                approved: !record.approved
+
+            })
+            .eq("id", record.id)
+            .select("id")
+            .single();
+
+        if (error) {
+            throw error;
+        }
+
+        await loadData();
+
+        if ($("dashboard-message").hidden) {
+
+            showMessage(
+                "dashboard-message",
+                record.approved
+                    ? "Record unapproved."
+                    : "Record approved.",
+                "success"
+            );
+        }
+
+    } catch (error) {
+
+        showMessage(
+            "dashboard-message",
+            errorText(error),
+            "error"
+        );
+
+    } finally {
+
+        busy = false;
+    }
+}
+
+
+/* =========================================
+   DELETE RECORD
+========================================= */
+
+async function deleteRecord(table, record) {
+
+    if (busy) {
+        return;
+    }
+
+    if (table === "restaurants") {
+
+        const linked = data.video_reviews.some(
+            video =>
+                video.restaurant_id === record.id
+        );
+
+        if (linked) {
+
+            showMessage(
+                "dashboard-message",
+                "Remove the linked video reviews before deleting this restaurant.",
+                "error"
+            );
+
+            return;
+        }
+    }
+
+    if (table === "creators") {
+
+        const linked = data.video_reviews.some(
+            video =>
+                video.creator_id === record.id
+        );
+
+        if (linked) {
+
+            showMessage(
+                "dashboard-message",
+                "Remove the linked video reviews before deleting this creator.",
+                "error"
+            );
+
+            return;
+        }
+    }
+
+    const confirmed = window.confirm(
+
+        "Permanently delete " +
+        recordTitle(table, record) +
+        "?\n\nThis cannot be undone."
+
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    busy = true;
+
+    try {
+
+        await requireAdmin();
+
+        const { error } = await db
+            .from(table)
+            .delete()
+            .eq("id", record.id)
+            .select("id")
+            .single();
+
+        if (error) {
+            throw error;
+        }
+
+        await loadData();
+
+        if ($("dashboard-message").hidden) {
+
+            showMessage(
+                "dashboard-message",
+                "Record deleted.",
+                "success"
+            );
+        }
+
+    } catch (error) {
+
+        showMessage(
+            "dashboard-message",
+            errorText(error),
+            "error"
+        );
+
+    } finally {
+
+        busy = false;
+    }
+}
+
+
+/* =========================================
+   INITIALISE
+========================================= */
+
+async function initialise() {
+
+    try {
+
+        if (
+            SUPABASE_URL.includes("PASTE_") ||
+            SUPABASE_KEY.includes("PASTE_")
+        ) {
+
+            throw new Error(
+                "Add your Supabase URL and public API key " +
+                "to the admin.html configuration first."
+            );
+        }
+
+        if (!window.supabase) {
+
+            throw new Error(
+                "Supabase could not load. Refresh the page."
+            );
+        }
+
+        db = window.supabase.createClient(
+
+            SUPABASE_URL,
+
+            SUPABASE_KEY,
+
+            {
+
+                auth: {
+
+                    persistSession: true,
+
+                    autoRefreshToken: true,
+
+                    storageKey: "socialscran-admin-auth"
+
+                }
+            }
+        );
+
+        db.auth.onAuthStateChange(
+            (event, session) => {
+
+                if (event === "SIGNED_OUT") {
+
+                    $("dashboard").hidden = true;
+
+                    $("login-section").hidden = false;
+
+                    $("logout-button").hidden = true;
+
+                    $("editor-modal").hidden = true;
+
+                    clearData();
+                }
+            }
+        );
+
+        const { data: result, error } =
+            await db.auth.getSession();
+
+        if (error) {
+            throw error;
+        }
+
+        if (result.session) {
+
+            await requireAdmin();
+        }
+
+        await showDashboard(result.session);
+
+    } catch (error) {
+
+        showMessage(
+            "login-message",
+            errorText(error),
+            "error"
+        );
+
+        if (!db) {
+            $("login-button").disabled = true;
+        } else {
+            await db.auth.signOut();
+        }
+    }
+}
+
+initialise();
+
+</script>
+
+</body>
+</html>
