@@ -125,7 +125,7 @@ button, a {
   border-color: var(--black);
 }
 
-/* MAP MARKERS */
+/* RESTAURANT MAP PINS */
 
 .pin {
   width: 43px;
@@ -227,7 +227,7 @@ button, a {
 .restaurant-category {
   color: #777;
   font-size: 13px;
-  margin: 0 0 12px;
+  margin: 0 0 10px;
 }
 
 .info-row {
@@ -241,8 +241,8 @@ button, a {
   color: #777;
   background: #f5f5f5;
   border-radius: 8px;
-  padding: 8px 10px;
-  margin-top: 10px;
+  padding: 7px 9px;
+  margin-top: 8px;
   font-size: 11px;
   line-height: 1.4;
 }
@@ -260,17 +260,17 @@ button, a {
   font-weight: bold;
 }
 
-/* VIDEO SECTION */
+/* VIDEO GALLERY */
 
 .video-section {
-  margin-top: 18px;
+  margin-top: 16px;
 }
 
 .section-heading {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .section-heading h3 {
@@ -318,29 +318,6 @@ button, a {
   background: white;
 }
 
-.platform-label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px;
-  color: white;
-  font-size: 11px;
-  font-weight: bold;
-}
-
-.platform-tiktok {
-  background: #171717;
-}
-
-.platform-instagram {
-  background: linear-gradient(
-    110deg,
-    #833ab4,
-    #e1306c,
-    #f77737
-  );
-}
-
 .video-frame {
   position: relative;
   width: 100%;
@@ -356,8 +333,48 @@ button, a {
   border: 0;
 }
 
+/*
+  Instagram controls its own embedded interface.
+  Required branding and profile controls remain visible.
+  The expanded player provides additional viewing space.
+*/
+
 .video-card-info {
   padding: 8px;
+}
+
+.video-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  min-width: 0;
+}
+
+.platform-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 23px;
+  height: 23px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  color: white;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.platform-tiktok {
+  background: #171717;
+}
+
+.platform-instagram {
+  background: linear-gradient(
+    135deg,
+    #833ab4,
+    #e1306c,
+    #f77737
+  );
 }
 
 .creator {
@@ -366,10 +383,14 @@ button, a {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 8px;
+  min-width: 0;
 }
 
 .expand-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
   width: 100%;
   border: 0;
   border-radius: 7px;
@@ -390,7 +411,7 @@ button, a {
   font-size: 10px;
   text-decoration: none;
   text-align: center;
-  padding-top: 9px;
+  padding-top: 8px;
 }
 
 .player-note {
@@ -410,7 +431,7 @@ button, a {
   font-size: 13px;
 }
 
-/* EXPANDED VIDEO */
+/* EXPANDED VIDEO PLAYER */
 
 .video-modal {
   position: fixed;
@@ -443,6 +464,7 @@ button, a {
   align-items: center;
   padding: 10px 12px;
   color: white;
+  flex-shrink: 0;
 }
 
 .modal-header strong {
@@ -461,7 +483,7 @@ button, a {
 
 .modal-player {
   width: 100%;
-  height: min(73dvh, 700px);
+  height: min(76dvh, 720px);
   background: black;
   flex-shrink: 0;
 }
@@ -514,6 +536,19 @@ button, a {
   text-align: center;
   font-size: 14px;
   display: none;
+}
+
+.version-label {
+  position: fixed;
+  bottom: 24px;
+  left: 8px;
+  z-index: 5;
+  font-size: 10px;
+  color: #555;
+  background: #fffd;
+  padding: 4px 7px;
+  border-radius: 5px;
+  pointer-events: none;
 }
 
 /* MOBILE */
@@ -572,7 +607,7 @@ button, a {
   }
 
   .panel-toolbar {
-    padding: 3px 13px 9px;
+    padding: 3px 13px 8px;
   }
 
   .panel-content {
@@ -588,7 +623,7 @@ button, a {
 
   .restaurant-category {
     font-size: 12px;
-    margin-bottom: 9px;
+    margin-bottom: 8px;
   }
 
   .info-row {
@@ -600,19 +635,29 @@ button, a {
   }
 
   .video-section {
-    margin-top: 14px;
+    margin-top: 12px;
   }
 
   .video-card-info {
     padding: 6px;
   }
 
+  .video-modal {
+    padding: 8px;
+  }
+
+  .modal-inner {
+    max-height: 98dvh;
+  }
+
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .panel {
     transition: none;
   }
+
 }
 
 </style>
@@ -760,6 +805,10 @@ button, a {
   The map could not load. Please check your connection and refresh the page.
 </div>
 
+<div class="version-label">
+  SocialScran V0.5
+</div>
+
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 
 <script>
@@ -853,6 +902,8 @@ let lastExpandIndex = null;
 
 let map;
 
+let mapReady = false;
+
 /* MAP INITIALISATION */
 
 try {
@@ -861,17 +912,25 @@ try {
 
     container: "map",
 
-    style: "https://tiles.openfreemap.org/styles/liberty",
+    style: "https://tiles.openfreemap.org/styles/positron",
 
     center: [-2.85, 53.43],
 
-    zoom: 9
+    zoom: 9,
+
+    minZoom: 4,
+
+    maxZoom: 19
 
   });
 
   map.addControl(
 
-    new maplibregl.NavigationControl(),
+    new maplibregl.NavigationControl({
+
+      showCompass: false
+
+    }),
 
     "bottom-right"
 
@@ -902,6 +961,67 @@ try {
 
 }
 
+/* SIMPLIFIED MAP STYLE */
+
+function simplifyMap() {
+
+  if (!map) return;
+
+  const style = map.getStyle();
+
+  if (!style || !style.layers) return;
+
+  style.layers.forEach(layer => {
+
+    const id = layer.id.toLowerCase();
+
+    const sourceLayer =
+      (layer["source-layer"] || "").toLowerCase();
+
+    /*
+      Hide points of interest and business labels.
+      Keep roads, street names, towns, cities,
+      parks, buildings and water.
+    */
+
+    const hiddenSources = [
+
+      "poi",
+
+      "transit",
+
+      "aerodrome_label",
+
+      "housenumber",
+
+      "mountain_peak"
+
+    ];
+
+    const unwantedLayer =
+
+      hiddenSources.includes(sourceLayer) ||
+
+      /(^|[-_])(poi|shop|restaurant|hotel|amenity|housenumber|transit|bus|airport|aerodrome|railway|railroad)([-_]|$)/.test(id);
+
+    if (unwantedLayer) {
+
+      map.setLayoutProperty(
+
+        layer.id,
+
+        "visibility",
+
+        "none"
+
+      );
+
+    }
+
+  });
+
+}
+
 /* SAFE TEXT */
 
 function escapeHTML(value) {
@@ -928,14 +1048,42 @@ function escapeHTML(value) {
 
 }
 
-/* VIDEO EMBEDS */
+/* CLEANER VIDEO EMBEDS */
 
 function getEmbedURL(video) {
 
   if (video.platform === "TikTok") {
 
-    return "https://www.tiktok.com/embed/v2/"
-      + encodeURIComponent(video.id);
+    const options = new URLSearchParams({
+
+      autoplay: "0",
+
+      controls: "1",
+
+      progress_bar: "1",
+
+      play_button: "1",
+
+      volume_control: "1",
+
+      fullscreen_button: "1",
+
+      timestamp: "0",
+
+      loop: "0",
+
+      music_info: "0",
+
+      description: "0",
+
+      rel: "0"
+
+    });
+
+    return "https://www.tiktok.com/player/v1/"
+      + encodeURIComponent(video.id)
+      + "?"
+      + options.toString();
 
   }
 
@@ -992,8 +1140,11 @@ function renderVideoGallery() {
   const videos = currentRestaurant.videos
 
     .map((video, index) => ({
+
       ...video,
+
       index
+
     }))
 
     .filter(video =>
@@ -1009,7 +1160,9 @@ function renderVideoGallery() {
   if (count) {
 
     count.textContent =
+
       videos.length +
+
       (videos.length === 1 ? " video" : " videos");
 
   }
@@ -1032,22 +1185,23 @@ function renderVideoGallery() {
 
   gallery.innerHTML = videos.map(video => {
 
-    const platformClass =
-      video.platform === "TikTok"
+    const isTikTok = video.platform === "TikTok";
+
+    const platformClass = isTikTok
+
       ? "platform-tiktok"
+
       : "platform-instagram";
+
+    const platformIcon = isTikTok
+
+      ? "♪"
+
+      : "◎";
 
     return `
 
       <article class="video-card">
-
-        <div class="platform-label ${platformClass}">
-
-          <span>${escapeHTML(video.platform)}</span>
-
-          <span>▶</span>
-
-        </div>
 
         <div class="video-frame">
 
@@ -1057,14 +1211,32 @@ function renderVideoGallery() {
 
         <div class="video-card-info">
 
-          <div class="creator">
+          <div class="video-meta">
 
-            ${escapeHTML(video.creator)}
+            <span
+
+              class="platform-icon ${platformClass}"
+
+              title="${escapeHTML(video.platform)}"
+
+              aria-label="${escapeHTML(video.platform)}">
+
+              ${platformIcon}
+
+            </span>
+
+            <span class="creator">
+
+              ${escapeHTML(video.creator)}
+
+            </span>
 
           </div>
 
           <button
+
             class="expand-button"
+
             data-video-index="${video.index}">
 
             ⛶ Expand video
@@ -1072,12 +1244,16 @@ function renderVideoGallery() {
           </button>
 
           <a
+
             class="original-link"
+
             href="${escapeHTML(video.url)}"
+
             target="_blank"
+
             rel="noopener noreferrer">
 
-            View original ↗
+            View on ${escapeHTML(video.platform)} ↗
 
           </a>
 
@@ -1118,7 +1294,9 @@ function showRestaurant(restaurant) {
     <p class="restaurant-category">
 
       ${escapeHTML(restaurant.city)}
+
       ·
+
       ${escapeHTML(restaurant.category)}
 
     </p>
@@ -1143,8 +1321,7 @@ function showRestaurant(restaurant) {
 
       <div class="demo-note">
 
-        Demo location — exact restaurant address
-        not yet verified.
+        Demo location — address not yet verified.
 
       </div>
 
@@ -1153,18 +1330,25 @@ function showRestaurant(restaurant) {
   } else {
 
     const destination =
+
       restaurant.lat + "," + restaurant.lng;
 
     const directionsURL =
+
       "https://www.google.com/maps/dir/?api=1&destination="
+
       + encodeURIComponent(destination);
 
     html += `
 
       <a
+
         class="directions"
+
         href="${directionsURL}"
+
         target="_blank"
+
         rel="noopener noreferrer">
 
         ➤ Get directions
@@ -1184,8 +1368,11 @@ function showRestaurant(restaurant) {
         <h3>Video reviews</h3>
 
         <span
+
           id="review-count"
+
           class="review-count">
+
         </span>
 
       </div>
@@ -1193,8 +1380,11 @@ function showRestaurant(restaurant) {
       <div class="video-filters">
 
         <button
+
           class="video-filter active"
+
           data-platform="all"
+
           aria-pressed="true">
 
           All
@@ -1202,8 +1392,11 @@ function showRestaurant(restaurant) {
         </button>
 
         <button
+
           class="video-filter"
+
           data-platform="TikTok"
+
           aria-pressed="false">
 
           TikTok
@@ -1211,8 +1404,11 @@ function showRestaurant(restaurant) {
         </button>
 
         <button
+
           class="video-filter"
+
           data-platform="Instagram"
+
           aria-pressed="false">
 
           Instagram
@@ -1222,15 +1418,20 @@ function showRestaurant(restaurant) {
       </div>
 
       <div
+
         id="video-grid"
+
         class="video-grid">
+
       </div>
 
       <p class="player-note">
 
-        Play videos directly or expand for a larger
-        player. If playback is unavailable, use the
-        original video link.
+        Tap to play or expand a video.
+
+        If playback is unavailable, use the original
+
+        video link.
 
       </p>
 
@@ -1264,7 +1465,7 @@ function showRestaurant(restaurant) {
 
 }
 
-/* CLOSE PANEL */
+/* CLOSE RESTAURANT PANEL */
 
 function closePanel() {
 
@@ -1293,7 +1494,9 @@ function closePanel() {
   if (lastMarker && lastMarker.isConnected) {
 
     lastMarker.focus({
+
       preventScroll: true
+
     });
 
   }
@@ -1301,9 +1504,10 @@ function closePanel() {
 }
 
 document.getElementById("close")
+
   .addEventListener("click", closePanel);
 
-/* RESIZABLE PANEL */
+/* RESIZABLE RESTAURANT PANEL */
 
 function setPanelSize(size) {
 
@@ -1326,6 +1530,7 @@ function setPanelSize(size) {
 }
 
 document.getElementById("resize")
+
   .addEventListener("click", () => {
 
     setPanelSize((panelSize + 1) % 3);
@@ -1335,7 +1540,9 @@ document.getElementById("resize")
 /* SWIPE PANEL */
 
 const dragHandle = document.getElementById(
+
   "drag-handle"
+
 );
 
 let dragStartY = null;
@@ -1402,7 +1609,13 @@ function expandVideo(video, index) {
 
   lastExpandIndex = index;
 
+  /*
+    Remove small players to stop background playback.
+    Expanded playback may restart from the beginning.
+  */
+
   content.querySelectorAll(".video-frame")
+
     .forEach(frame => {
 
       frame.innerHTML = "";
@@ -1410,10 +1623,13 @@ function expandVideo(video, index) {
     });
 
   document.getElementById("modal-title")
+
     .textContent =
+
       video.platform + " · " + video.creator;
 
   document.getElementById("modal-link")
+
     .href = video.url;
 
   modalPlayer.innerHTML = createPlayer(video, true);
@@ -1461,7 +1677,9 @@ function closeExpandedVideo(restoreGallery = true) {
     if (button) {
 
       button.focus({
+
         preventScroll: true
+
       });
 
     }
@@ -1473,6 +1691,7 @@ function closeExpandedVideo(restoreGallery = true) {
 }
 
 document.getElementById("modal-close")
+
   .addEventListener("click", () => {
 
     closeExpandedVideo();
@@ -1502,16 +1721,21 @@ content.addEventListener("click", event => {
     activePlatform = filter.dataset.platform;
 
     content.querySelectorAll(".video-filter")
+
       .forEach(button => {
 
         const active =
+
           button.dataset.platform === activePlatform;
 
         button.classList.toggle("active", active);
 
         button.setAttribute(
+
           "aria-pressed",
+
           String(active)
+
         );
 
       });
@@ -1523,13 +1747,17 @@ content.addEventListener("click", event => {
   }
 
   const expandButton = event.target.closest(
+
     ".expand-button"
+
   );
 
   if (!expandButton) return;
 
   const index = Number(
+
     expandButton.dataset.videoIndex
+
   );
 
   const video = currentRestaurant.videos[index];
@@ -1560,11 +1788,11 @@ document.addEventListener("keydown", event => {
 
 });
 
-/* RESTAURANT MARKERS */
+/* RESTAURANT MAP MARKERS */
 
 function renderMarkers() {
 
-  if (!map) return;
+  if (!map || !mapReady) return;
 
   markers.forEach(item => item.marker.remove());
 
@@ -1700,7 +1928,9 @@ function renderMarkers() {
 
     !filtered.some(
 
-      restaurant => restaurant.id === currentRestaurant.id
+      restaurant =>
+
+        restaurant.id === currentRestaurant.id
 
     )
 
@@ -1718,7 +1948,15 @@ search.addEventListener("input", renderMarkers);
 
 search.addEventListener("keydown", event => {
 
-  if (event.key !== "Enter" || !map) return;
+  if (
+
+    event.key !== "Enter" ||
+
+    !map ||
+
+    !mapReady
+
+  ) return;
 
   if (markers.length === 1) {
 
@@ -1757,13 +1995,15 @@ const cityViews = {
 };
 
 document.querySelectorAll(".filters button")
+
   .forEach(button => {
 
     button.addEventListener("click", () => {
 
-      if (!map) return;
+      if (!map || !mapReady) return;
 
       document.querySelectorAll(".filters button")
+
         .forEach(item => {
 
           item.classList.remove("active");
@@ -1810,11 +2050,31 @@ document.querySelectorAll(".filters button")
 
 if (map) {
 
-  map.on("load", renderMarkers);
+  map.on("load", () => {
+
+    mapReady = true;
+
+    document.getElementById("map-error")
+
+      .style.display = "none";
+
+    simplifyMap();
+
+    renderMarkers();
+
+  });
 
   map.on("click", event => {
 
-    if (event.originalEvent.target.closest(".pin")) {
+    const target = event.originalEvent.target;
+
+    if (
+
+      target instanceof Element &&
+
+      target.closest(".pin")
+
+    ) {
 
       return;
 
@@ -1833,6 +2093,18 @@ if (map) {
     map.resize();
 
   });
+
+  setTimeout(() => {
+
+    if (!mapReady) {
+
+      document.getElementById("map-error")
+
+        .style.display = "block";
+
+    }
+
+  }, 20000);
 
 }
 
