@@ -595,7 +595,7 @@ input:focus-visible {
   <div class="brand-row">
     <div class="brand">
       Social<span>Scran</span> 🍔
-      <small class="version">V0.9.1 · Discovery Update</small>
+      <small class="version">V0.9.2 · Quick Population Update</small>
     </div>
 
     <select id="theme-select" class="theme-control" aria-label="Map and website theme">
@@ -659,11 +659,7 @@ input:focus-visible {
       <span id="video-count"></span>
     </div>
 
-    <div class="video-filters">
-      <button class="pill active" data-platform="tiktok">TikTok</button>
-      <button class="pill" data-platform="instagram">Instagram</button>
-      <button class="pill" data-platform="all">All</button>
-    </div>
+
 
     <div id="video-grid" class="video-grid"></div>
 
@@ -941,7 +937,7 @@ function validVideo(video) {
   }
 
   if (video.platform === "instagram") {
-    return /^[A-Za-z0-9_-]+$/.test(id);
+    return false;
   }
 
   return false;
