@@ -2,667 +2,1841 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
-  <title>SocialScran | Discover Food Worth Sharing</title>
+<title>SocialScran | Discover Food Worth Sharing</title>
 
-  <link
-    href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
-    rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
+<style>
 
-    :root {
-      font-family: Arial, Helvetica, sans-serif;
-      color: #222;
-    }
+* {
+  box-sizing: border-box;
+}
 
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: #f7f5f1;
-    }
+:root {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #222;
+  --orange: #ff7540;
+  --black: #171717;
+  --grey: #f4f4f4;
+}
 
-    button, input {
-      font: inherit;
-    }
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #f7f5f1;
+}
 
-    button {
-      cursor: pointer;
-    }
+button, input {
+  font: inherit;
+}
 
-    #map {
-      position: fixed;
-      inset: 0;
-    }
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
 
-    /* Header */
+button, a {
+  touch-action: manipulation;
+}
 
-    .header {
-      position: fixed;
-      z-index: 10;
-      top: 0;
-      left: 0;
-      right: 0;
-      padding: 15px;
-      pointer-events: none;
-    }
+#map {
+  position: fixed;
+  inset: 0;
+}
 
-    .header-inner {
-      max-width: 650px;
-      margin: auto;
-      pointer-events: auto;
-    }
+/* HEADER */
 
-    .brand {
-      display: inline-block;
-      padding: 9px 15px;
-      background: #171717;
-      color: white;
-      font-weight: 800;
-      font-size: 23px;
-      border-radius: 12px;
-      margin-bottom: 10px;
-      box-shadow: 0 3px 15px #0002;
-    }
+.header {
+  position: fixed;
+  z-index: 10;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 12px;
+  pointer-events: none;
+}
 
-    .brand span {
-      color: #ff8247;
-    }
+.header-inner {
+  max-width: 650px;
+  margin: auto;
+  pointer-events: auto;
+}
 
-    .search {
-      width: 100%;
-      padding: 15px 18px;
-      border: 1px solid #ddd;
-      border-radius: 14px;
-      background: white;
-      outline: none;
-      box-shadow: 0 4px 20px #0002;
-    }
+.brand {
+  display: inline-block;
+  background: var(--black);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 12px;
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 10px;
+  box-shadow: 0 3px 15px #0002;
+}
 
-    .search:focus {
-      border-color: #ff8247;
-    }
+.brand span {
+  color: var(--orange);
+}
 
-    .filters {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
+.search {
+  width: 100%;
+  padding: 14px 16px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  font-size: 16px;
+  outline: none;
+  box-shadow: 0 4px 20px #0002;
+}
 
-    .filters button {
-      border: 1px solid #ddd;
-      border-radius: 25px;
-      background: white;
-      padding: 10px 15px;
-      white-space: nowrap;
-      box-shadow: 0 2px 10px #0001;
-    }
+.search:focus {
+  border-color: var(--orange);
+}
 
-    .filters button.active {
-      background: #171717;
-      color: white;
-      border-color: #171717;
-    }
+.filters {
+  display: flex;
+  gap: 7px;
+  margin-top: 9px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
 
-    /* Map pins */
+.filters::-webkit-scrollbar {
+  display: none;
+}
 
-    .pin {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 43px;
-      height: 43px;
-      background: #ff7540;
-      border: 3px solid white;
-      border-radius: 50%;
-      box-shadow: 0 3px 12px #0005;
-      font-size: 22px;
-      cursor: pointer;
-      transition: transform .15s;
-    }
+.filters button {
+  border: 1px solid #ddd;
+  border-radius: 25px;
+  background: white;
+  color: #222;
+  padding: 9px 14px;
+  font-size: 13px;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px #0001;
+}
 
-    .pin:hover {
-      transform: scale(1.15);
-    }
+.filters button.active {
+  background: var(--black);
+  color: white;
+  border-color: var(--black);
+}
 
-    /* Restaurant details panel */
+/* MAP MARKERS */
 
-    .panel {
-      position: fixed;
-      z-index: 20;
-      top: 0;
-      right: 0;
-      width: min(440px, 100%);
-      height: 100dvh;
-      background: white;
-      box-shadow: -5px 0 30px #0003;
-      transform: translateX(105%);
-      transition: transform .25s ease;
-      overflow-y: auto;
-      overscroll-behavior: contain;
-    }
+.pin {
+  width: 43px;
+  height: 43px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--orange);
+  border: 3px solid white;
+  border-radius: 50%;
+  font-size: 22px;
+  box-shadow: 0 3px 12px #0005;
+}
 
-    .panel.open {
-      transform: translateX(0);
-    }
+.pin.selected {
+  background: var(--black);
+  border-color: var(--orange);
+}
 
-    .panel-content {
-      padding: 22px;
-    }
+/* RESTAURANT PANEL */
 
-    .panel-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-    }
+.panel {
+  position: fixed;
+  z-index: 20;
+  top: 0;
+  right: 0;
+  width: min(540px, 100%);
+  height: 100dvh;
+  background: white;
+  box-shadow: -5px 0 30px #0003;
+  transform: translateX(105%);
+  transition: transform .25s ease, height .25s ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  visibility: hidden;
+}
 
-    .close {
-      border: 0;
-      border-radius: 50%;
-      background: #f0f0f0;
-      width: 38px;
-      height: 38px;
-      font-size: 23px;
-    }
+.panel.open {
+  transform: translateX(0);
+  visibility: visible;
+}
 
-    .restaurant-title {
-      font-size: 25px;
-      margin: 15px 0 8px;
-    }
+.panel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid #eee;
+  flex-shrink: 0;
+}
 
-    .muted {
-      color: #666;
-      line-height: 1.5;
-    }
+.panel-toolbar strong {
+  color: #777;
+  font-size: 12px;
+}
 
-    .tag {
-      display: inline-block;
-      background: #fff0e8;
-      color: #a84217;
-      padding: 7px 11px;
-      border-radius: 20px;
-      font-size: 13px;
-      margin: 8px 0;
-    }
+.toolbar-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-    .directions {
-      display: block;
-      text-align: center;
-      text-decoration: none;
-      background: #ff7540;
-      color: white;
-      padding: 14px;
-      border-radius: 12px;
-      font-weight: bold;
-      margin: 20px 0;
-    }
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: #f1f1f1;
+  color: #222;
+  font-size: 20px;
+}
 
-    .video-section {
-      margin-top: 25px;
-    }
+.resize-button {
+  display: none;
+}
 
-    .video-section h3 {
-      margin-bottom: 15px;
-    }
+.drag-handle {
+  display: none;
+}
 
-    .video-card {
-      border: 1px solid #eee;
-      border-radius: 14px;
-      padding: 12px;
-      margin-bottom: 18px;
-      background: #fafafa;
-    }
+.panel-content {
+  padding: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 
-    .video-label {
-      font-weight: bold;
-      margin: 0 0 12px;
-    }
+.restaurant-title {
+  font-size: 22px;
+  line-height: 1.25;
+  margin: 0 0 5px;
+}
 
-    .video-frame {
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      overflow: hidden;
-    }
+.restaurant-category {
+  color: #777;
+  font-size: 13px;
+  margin: 0 0 12px;
+}
 
-    .video-frame iframe {
-      width: 100%;
-      max-width: 325px;
-      height: 580px;
-      border: 0;
-      border-radius: 10px;
-    }
+.info-row {
+  color: #555;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 4px 0;
+}
 
-    .instagram-media {
-      min-width: 0 !important;
-      width: 100% !important;
-      max-width: 540px !important;
-    }
+.demo-note {
+  color: #777;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-top: 10px;
+  font-size: 11px;
+  line-height: 1.4;
+}
 
-    .video-link {
-      display: block;
-      color: #b34c1c;
-      font-size: 13px;
-      margin-top: 10px;
-      overflow-wrap: anywhere;
-    }
+.directions {
+  display: block;
+  background: var(--orange);
+  color: #171717;
+  padding: 12px;
+  margin: 12px 0;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: bold;
+}
 
-    .empty {
-      padding: 15px;
-      background: #f6f6f6;
-      border-radius: 12px;
-      color: #666;
-    }
+/* VIDEO SECTION */
 
-    .maplibregl-ctrl-bottom-right {
-      margin-bottom: 10px;
-    }
+.video-section {
+  margin-top: 18px;
+}
 
-    @media (max-width: 650px) {
-      .header {
-        padding: 12px;
-      }
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
 
-      .brand {
-        font-size: 20px;
-      }
+.section-heading h3 {
+  margin: 0;
+  font-size: 17px;
+}
 
-      .panel {
-        top: auto;
-        bottom: 0;
-        width: 100%;
-        height: 82dvh;
-        border-radius: 22px 22px 0 0;
-        transform: translateY(105%);
-      }
+.review-count {
+  color: #777;
+  font-size: 12px;
+}
 
-      .panel.open {
-        transform: translateY(0);
-      }
+.video-filters {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 12px;
+}
 
-      .panel-content {
-        padding: 18px;
-      }
-    }
-  </style>
+.video-filter {
+  border: 1px solid #e5e5e5;
+  border-radius: 20px;
+  background: white;
+  color: #555;
+  padding: 7px 12px;
+  font-size: 11px;
+}
+
+.video-filter.active {
+  background: var(--black);
+  color: white;
+  border-color: var(--black);
+}
+
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.video-card {
+  min-width: 0;
+  border: 1px solid #e6e6e6;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+}
+
+.platform-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.platform-tiktok {
+  background: #171717;
+}
+
+.platform-instagram {
+  background: linear-gradient(
+    110deg,
+    #833ab4,
+    #e1306c,
+    #f77737
+  );
+}
+
+.video-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  background: #171717;
+}
+
+.video-frame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.video-card-info {
+  padding: 8px;
+}
+
+.creator {
+  font-size: 11px;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 8px;
+}
+
+.expand-button {
+  width: 100%;
+  border: 0;
+  border-radius: 7px;
+  padding: 9px 3px;
+  background: #f1f1f1;
+  color: #222;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.expand-button:hover {
+  background: #ffe7dc;
+}
+
+.original-link {
+  display: block;
+  color: #a84217;
+  font-size: 10px;
+  text-decoration: none;
+  text-align: center;
+  padding-top: 9px;
+}
+
+.player-note {
+  color: #888;
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 12px;
+}
+
+.empty-videos {
+  grid-column: 1 / -1;
+  background: #f5f5f5;
+  color: #777;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 13px;
+}
+
+/* EXPANDED VIDEO */
+
+.video-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: #000e;
+}
+
+.video-modal.open {
+  display: flex;
+}
+
+.modal-inner {
+  width: min(440px, 100%);
+  max-height: 96dvh;
+  background: #171717;
+  border-radius: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  color: white;
+}
+
+.modal-header strong {
+  font-size: 13px;
+}
+
+.modal-close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: #333;
+  color: white;
+  font-size: 22px;
+}
+
+.modal-player {
+  width: 100%;
+  height: min(73dvh, 700px);
+  background: black;
+  flex-shrink: 0;
+}
+
+.modal-player iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.modal-footer {
+  padding: 13px;
+  text-align: center;
+  font-size: 12px;
+}
+
+.modal-footer a {
+  color: #ff996e;
+}
+
+/* MAP STATUS */
+
+.results-message {
+  position: fixed;
+  z-index: 11;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #171717;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  white-space: nowrap;
+  display: none;
+}
+
+.map-error {
+  position: fixed;
+  z-index: 12;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(300px, 85%);
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px #0002;
+  text-align: center;
+  font-size: 14px;
+  display: none;
+}
+
+/* MOBILE */
+
+@media (max-width: 650px) {
+
+  .brand {
+    font-size: 20px;
+  }
+
+  .header {
+    padding: 10px;
+  }
+
+  .panel {
+    top: auto;
+    bottom: 0;
+    width: 100%;
+    height: 74dvh;
+    border-radius: 20px 20px 0 0;
+    transform: translateY(105%);
+  }
+
+  .panel.open {
+    transform: translateY(0);
+  }
+
+  .panel.tall {
+    height: 96dvh;
+  }
+
+  .panel.short {
+    height: 38dvh;
+  }
+
+  .drag-handle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 20px;
+    flex-shrink: 0;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .drag-handle span {
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 5px;
+    background: #ccc;
+  }
+
+  .resize-button {
+    display: flex;
+  }
+
+  .panel-toolbar {
+    padding: 3px 13px 9px;
+  }
+
+  .panel-content {
+    padding: 12px;
+    padding-bottom: calc(
+      15px + env(safe-area-inset-bottom)
+    );
+  }
+
+  .restaurant-title {
+    font-size: 19px;
+  }
+
+  .restaurant-category {
+    font-size: 12px;
+    margin-bottom: 9px;
+  }
+
+  .info-row {
+    font-size: 12px;
+  }
+
+  .video-grid {
+    gap: 8px;
+  }
+
+  .video-section {
+    margin-top: 14px;
+  }
+
+  .video-card-info {
+    padding: 6px;
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    transition: none;
+  }
+}
+
+</style>
 </head>
 
 <body>
 
-  <div id="map" aria-label="Restaurant discovery map"></div>
+<div id="map" aria-label="Restaurant discovery map"></div>
 
-  <header class="header">
-    <div class="header-inner">
+<header class="header">
 
-      <div class="brand">
-        Social<span>Scran</span> 🍔
-      </div>
+  <div class="header-inner">
 
-      <input
-        id="search"
-        class="search"
-        type="search"
-        placeholder="Search restaurants or cities..."
-        aria-label="Search restaurants or cities">
-
-      <div class="filters">
-        <button class="active" data-city="all">
-          All
-        </button>
-
-        <button data-city="Manchester">
-          Manchester
-        </button>
-
-        <button data-city="Liverpool">
-          Liverpool
-        </button>
-
-        <button data-city="Warrington">
-          Warrington
-        </button>
-      </div>
-
+    <div class="brand">
+      Social<span>Scran</span> 🍔
     </div>
-  </header>
 
-  <aside id="panel" class="panel"
-         aria-label="Restaurant details">
+    <input
+      id="search"
+      class="search"
+      type="search"
+      placeholder="Search restaurants or cities..."
+      aria-label="Search restaurants or cities">
 
-    <div class="panel-content">
+    <div class="filters">
 
-      <div class="panel-top">
-        <strong>Restaurant details</strong>
-        <button id="close" class="close"
-                aria-label="Close restaurant details">
-          &times;
-        </button>
-      </div>
+      <button class="active" data-city="all">
+        All
+      </button>
 
-      <div id="restaurant-content"></div>
+      <button data-city="Manchester">
+        Manchester
+      </button>
+
+      <button data-city="Liverpool">
+        Liverpool
+      </button>
+
+      <button data-city="Warrington">
+        Warrington
+      </button>
 
     </div>
 
-  </aside>
+  </div>
 
-  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+</header>
 
-  <script>
-    /*
-      SOCIALSCRAN DEMO DATA
+<aside
+  id="panel"
+  class="panel"
+  aria-label="Restaurant details"
+  aria-hidden="true"
+  inert>
 
-      The pin below is an illustrative location,
-      NOT a verified restaurant address.
+  <div id="drag-handle" class="drag-handle">
+    <span></span>
+  </div>
 
-      Later, we'll replace this with approved
-      restaurant records from a database.
-    */
+  <div class="panel-toolbar">
 
-    const restaurants = [
+    <strong>Restaurant details</strong>
+
+    <div class="toolbar-buttons">
+
+      <button
+        id="resize"
+        class="icon-button resize-button"
+        aria-label="Resize restaurant panel">
+        ↕
+      </button>
+
+      <button
+        id="close"
+        class="icon-button"
+        aria-label="Close restaurant">
+        ×
+      </button>
+
+    </div>
+
+  </div>
+
+  <div
+    id="restaurant-content"
+    class="panel-content">
+  </div>
+
+</aside>
+
+<div
+  id="video-modal"
+  class="video-modal"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Expanded video"
+  aria-hidden="true">
+
+  <div class="modal-inner">
+
+    <div class="modal-header">
+
+      <strong id="modal-title">
+        Food review
+      </strong>
+
+      <button
+        id="modal-close"
+        class="modal-close"
+        aria-label="Close expanded video">
+        ×
+      </button>
+
+    </div>
+
+    <div
+      id="modal-player"
+      class="modal-player">
+    </div>
+
+    <div class="modal-footer">
+
+      <a
+        id="modal-link"
+        href="#"
+        target="_blank"
+        rel="noopener noreferrer">
+        View original video
+      </a>
+
+    </div>
+
+  </div>
+
+</div>
+
+<div
+  id="results-message"
+  class="results-message"
+  role="status">
+  No restaurants found
+</div>
+
+<div id="map-error" class="map-error">
+  The map could not load. Please check your connection and refresh the page.
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+<script>
+
+/* RESTAURANT DATABASE */
+
+const restaurants = [
+
+  {
+    id: 1,
+
+    name: "Liverpool Food Review Demo",
+
+    city: "Liverpool",
+
+    category: "Food reviews",
+
+    address: "Liverpool city centre (demo)",
+
+    hours: "Opening times not yet verified",
+
+    lng: -2.985,
+
+    lat: 53.408,
+
+    demo: true,
+
+    videos: [
+
       {
-        id: 1,
-        name: "Liverpool Food Review Demo",
-        city: "Liverpool",
-        category: "Food reviews",
-        address: "Liverpool city centre (demo location)",
-        hours: "Not yet verified",
-        lng: -2.985,
-        lat: 53.408,
-        demo: true,
+        platform: "TikTok",
 
-        videos: [
-          {
-            platform: "TikTok",
-            url: "https://www.tiktok.com/@jasinliverpool/video/7709913534401973526",
-            id: "7709913534401973526"
-          },
-          {
-            platform: "Instagram",
-            url: "https://www.instagram.com/reel/Df7uBGJBxzd/"
-          }
-        ]
+        creator: "@jasinliverpool",
+
+        id: "7709913534401973526",
+
+        url: "https://www.tiktok.com/@jasinliverpool/video/7709913534401973526"
+      },
+
+      {
+        platform: "Instagram",
+
+        creator: "@jasinliverpool",
+
+        id: "Df7uBGJBxzd",
+
+        url: "https://www.instagram.com/reel/Df7uBGJBxzd/"
       }
-    ];
 
-    const map = new maplibregl.Map({
-      container: "map",
-      style: "https://tiles.openfreemap.org/styles/liberty",
-      center: [-2.85, 53.43],
-      zoom: 9
-    });
+    ]
 
-    map.addControl(
-      new maplibregl.NavigationControl(),
-      "bottom-right"
+  }
+
+];
+
+/* ELEMENTS */
+
+const panel = document.getElementById("panel");
+
+const content = document.getElementById(
+  "restaurant-content"
+);
+
+const search = document.getElementById("search");
+
+const modal = document.getElementById("video-modal");
+
+const modalPlayer = document.getElementById(
+  "modal-player"
+);
+
+const resultsMessage = document.getElementById(
+  "results-message"
+);
+
+const header = document.querySelector(".header");
+
+const markers = [];
+
+let activeCity = "all";
+
+let activePlatform = "all";
+
+let currentRestaurant = null;
+
+let panelSize = 1;
+
+let lastMarker = null;
+
+let lastExpandIndex = null;
+
+let map;
+
+/* MAP INITIALISATION */
+
+try {
+
+  map = new maplibregl.Map({
+
+    container: "map",
+
+    style: "https://tiles.openfreemap.org/styles/liberty",
+
+    center: [-2.85, 53.43],
+
+    zoom: 9
+
+  });
+
+  map.addControl(
+
+    new maplibregl.NavigationControl(),
+
+    "bottom-right"
+
+  );
+
+  map.addControl(
+
+    new maplibregl.GeolocateControl({
+
+      positionOptions: {
+        enableHighAccuracy: true
+      },
+
+      trackUserLocation: false,
+
+      showUserLocation: true
+
+    }),
+
+    "bottom-right"
+
+  );
+
+} catch (error) {
+
+  document.getElementById("map-error")
+    .style.display = "block";
+
+}
+
+/* SAFE TEXT */
+
+function escapeHTML(value) {
+
+  return String(value).replace(
+
+    /[&<>"']/g,
+
+    character => ({
+
+      "&": "&amp;",
+
+      "<": "&lt;",
+
+      ">": "&gt;",
+
+      '"': "&quot;",
+
+      "'": "&#39;"
+
+    })[character]
+
+  );
+
+}
+
+/* VIDEO EMBEDS */
+
+function getEmbedURL(video) {
+
+  if (video.platform === "TikTok") {
+
+    return "https://www.tiktok.com/embed/v2/"
+      + encodeURIComponent(video.id);
+
+  }
+
+  if (video.platform === "Instagram") {
+
+    return "https://www.instagram.com/reel/"
+      + encodeURIComponent(video.id)
+      + "/embed/";
+
+  }
+
+  return "";
+
+}
+
+function createPlayer(video, expanded = false) {
+
+  const url = getEmbedURL(video);
+
+  if (!url) return "";
+
+  return `
+
+    <iframe
+
+      src="${escapeHTML(url)}"
+
+      title="${escapeHTML(video.platform)} food review"
+
+      loading="${expanded ? "eager" : "lazy"}"
+
+      allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+
+      allowfullscreen
+
+      referrerpolicy="strict-origin-when-cross-origin">
+
+    </iframe>
+
+  `;
+
+}
+
+/* VIDEO GALLERY */
+
+function renderVideoGallery() {
+
+  if (!currentRestaurant) return;
+
+  const gallery = document.getElementById("video-grid");
+
+  if (!gallery) return;
+
+  const videos = currentRestaurant.videos
+
+    .map((video, index) => ({
+      ...video,
+      index
+    }))
+
+    .filter(video =>
+
+      activePlatform === "all" ||
+
+      video.platform === activePlatform
+
     );
 
-    const markers = [];
-    let activeCity = "all";
+  const count = document.getElementById("review-count");
 
-    const panel = document.getElementById("panel");
-    const content = document.getElementById(
-      "restaurant-content"
+  if (count) {
+
+    count.textContent =
+      videos.length +
+      (videos.length === 1 ? " video" : " videos");
+
+  }
+
+  if (!videos.length) {
+
+    gallery.innerHTML = `
+
+      <div class="empty-videos">
+
+        No reviews on this platform yet.
+
+      </div>
+
+    `;
+
+    return;
+
+  }
+
+  gallery.innerHTML = videos.map(video => {
+
+    const platformClass =
+      video.platform === "TikTok"
+      ? "platform-tiktok"
+      : "platform-instagram";
+
+    return `
+
+      <article class="video-card">
+
+        <div class="platform-label ${platformClass}">
+
+          <span>${escapeHTML(video.platform)}</span>
+
+          <span>▶</span>
+
+        </div>
+
+        <div class="video-frame">
+
+          ${createPlayer(video)}
+
+        </div>
+
+        <div class="video-card-info">
+
+          <div class="creator">
+
+            ${escapeHTML(video.creator)}
+
+          </div>
+
+          <button
+            class="expand-button"
+            data-video-index="${video.index}">
+
+            ⛶ Expand video
+
+          </button>
+
+          <a
+            class="original-link"
+            href="${escapeHTML(video.url)}"
+            target="_blank"
+            rel="noopener noreferrer">
+
+            View original ↗
+
+          </a>
+
+        </div>
+
+      </article>
+
+    `;
+
+  }).join("");
+
+}
+
+/* RESTAURANT PANEL */
+
+function showRestaurant(restaurant) {
+
+  if (modal.classList.contains("open")) {
+
+    closeExpandedVideo(false);
+
+  }
+
+  currentRestaurant = restaurant;
+
+  activePlatform = "all";
+
+  setPanelSize(1);
+
+  let html = `
+
+    <h2 class="restaurant-title">
+
+      ${escapeHTML(restaurant.name)}
+
+    </h2>
+
+    <p class="restaurant-category">
+
+      ${escapeHTML(restaurant.city)}
+      ·
+      ${escapeHTML(restaurant.category)}
+
+    </p>
+
+    <p class="info-row">
+
+      📍 ${escapeHTML(restaurant.address)}
+
+    </p>
+
+    <p class="info-row">
+
+      🕒 ${escapeHTML(restaurant.hours)}
+
+    </p>
+
+  `;
+
+  if (restaurant.demo) {
+
+    html += `
+
+      <div class="demo-note">
+
+        Demo location — exact restaurant address
+        not yet verified.
+
+      </div>
+
+    `;
+
+  } else {
+
+    const destination =
+      restaurant.lat + "," + restaurant.lng;
+
+    const directionsURL =
+      "https://www.google.com/maps/dir/?api=1&destination="
+      + encodeURIComponent(destination);
+
+    html += `
+
+      <a
+        class="directions"
+        href="${directionsURL}"
+        target="_blank"
+        rel="noopener noreferrer">
+
+        ➤ Get directions
+
+      </a>
+
+    `;
+
+  }
+
+  html += `
+
+    <section class="video-section">
+
+      <div class="section-heading">
+
+        <h3>Video reviews</h3>
+
+        <span
+          id="review-count"
+          class="review-count">
+        </span>
+
+      </div>
+
+      <div class="video-filters">
+
+        <button
+          class="video-filter active"
+          data-platform="all"
+          aria-pressed="true">
+
+          All
+
+        </button>
+
+        <button
+          class="video-filter"
+          data-platform="TikTok"
+          aria-pressed="false">
+
+          TikTok
+
+        </button>
+
+        <button
+          class="video-filter"
+          data-platform="Instagram"
+          aria-pressed="false">
+
+          Instagram
+
+        </button>
+
+      </div>
+
+      <div
+        id="video-grid"
+        class="video-grid">
+      </div>
+
+      <p class="player-note">
+
+        Play videos directly or expand for a larger
+        player. If playback is unavailable, use the
+        original video link.
+
+      </p>
+
+    </section>
+
+  `;
+
+  content.innerHTML = html;
+
+  content.scrollTop = 0;
+
+  panel.inert = false;
+
+  panel.setAttribute("aria-hidden", "false");
+
+  panel.classList.add("open");
+
+  renderVideoGallery();
+
+  markers.forEach(item => {
+
+    item.element.classList.toggle(
+
+      "selected",
+
+      item.restaurant.id === restaurant.id
+
     );
 
-    const search = document.getElementById("search");
+  });
 
-    function escapeHTML(value) {
-      return String(value).replace(
-        /[&<>"']/g,
-        char => ({
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#39;"
-        })[char]
-      );
-    }
+}
 
-    function showRestaurant(restaurant) {
-      const name = escapeHTML(restaurant.name);
-      const city = escapeHTML(restaurant.city);
-      const category = escapeHTML(restaurant.category);
-      const address = escapeHTML(restaurant.address);
-      const hours = escapeHTML(restaurant.hours);
+/* CLOSE PANEL */
 
-      let html = `
-        <h2 class="restaurant-title">${name}</h2>
+function closePanel() {
 
-        <span class="tag">${category}</span>
+  if (modal.classList.contains("open")) {
 
-        <p class="muted">
-          📍 ${address}<br>
-          🏙️ ${city}<br>
-          🕒 Opening times: ${hours}
-        </p>
-      `;
+    closeExpandedVideo(false);
 
-      if (restaurant.demo) {
-        html += `
-          <p class="empty">
-            This is a demonstration pin.
-            The restaurant's exact address has
-            not yet been confirmed.
-          </p>
-        `;
-      } else {
-        const destination =
-          restaurant.lat + "," + restaurant.lng;
+  }
 
-        const directionsURL =
-          "https://www.google.com/maps/dir/?api=1&destination=" +
-          encodeURIComponent(destination);
+  panel.classList.remove("open", "tall", "short");
 
-        html += `
-          <a class="directions"
-             href="${directionsURL}"
-             target="_blank"
-             rel="noopener noreferrer">
-            Get directions
-          </a>
-        `;
-      }
+  panel.inert = true;
 
-      html += `
-        <section class="video-section">
-          <h3>Social food reviews</h3>
-      `;
+  panel.setAttribute("aria-hidden", "true");
 
-      restaurant.videos.forEach(video => {
-        html += `<div class="video-card">`;
+  content.innerHTML = "";
 
-        html += `
-          <p class="video-label">
-            ${escapeHTML(video.platform)} Review
-          </p>
-        `;
+  currentRestaurant = null;
 
-        if (video.platform === "TikTok") {
-          html += `
-            <div class="video-frame">
-              <iframe
-                src="https://www.tiktok.com/embed/v2/${encodeURIComponent(video.id)}"
-                title="TikTok food review"
-                loading="lazy"
-                allow="encrypted-media; fullscreen; picture-in-picture"
-                allowfullscreen>
-              </iframe>
-            </div>
-          `;
-        }
+  markers.forEach(item => {
 
-        if (video.platform === "Instagram") {
-          html += `
-            <div class="video-frame">
-              <blockquote
-                class="instagram-media"
-                data-instgrm-permalink="${escapeHTML(video.url)}"
-                data-instgrm-version="14">
-                <a href="${escapeHTML(video.url)}">
-                  View Instagram Reel
-                </a>
-              </blockquote>
-            </div>
-          `;
-        }
+    item.element.classList.remove("selected");
 
-        html += `
-          <a class="video-link"
-             href="${escapeHTML(video.url)}"
-             target="_blank"
-             rel="noopener noreferrer">
-            Open original ${escapeHTML(video.platform)} video
-          </a>
-        `;
+  });
 
-        html += `</div>`;
-      });
+  if (lastMarker && lastMarker.isConnected) {
 
-      html += `</section>`;
-
-      content.innerHTML = html;
-
-      panel.classList.add("open");
-
-      /*
-        Instagram embeds are dynamically inserted,
-        so we need to process them after rendering.
-      */
-      if (
-        window.instgrm &&
-        window.instgrm.Embeds
-      ) {
-        window.instgrm.Embeds.process();
-      }
-    }
-
-    function closePanel() {
-      panel.classList.remove("open");
-      content.innerHTML = "";
-    }
-
-    document.getElementById("close")
-      .addEventListener("click", closePanel);
-
-    document.addEventListener("keydown", event => {
-      if (event.key === "Escape") {
-        closePanel();
-      }
+    lastMarker.focus({
+      preventScroll: true
     });
 
-    function renderMarkers() {
-      markers.forEach(marker => marker.remove());
-      markers.length = 0;
+  }
 
-      const query = search.value.trim().toLowerCase();
+}
 
-      const filtered = restaurants.filter(restaurant => {
-        const matchesCity =
-          activeCity === "all" ||
-          restaurant.city === activeCity;
+document.getElementById("close")
+  .addEventListener("click", closePanel);
 
-        const searchableText = [
-          restaurant.name,
-          restaurant.city,
-          restaurant.category,
-          restaurant.address
-        ].join(" ").toLowerCase();
+/* RESIZABLE PANEL */
 
-        const matchesSearch =
-          searchableText.includes(query);
+function setPanelSize(size) {
 
-        return matchesCity && matchesSearch &&
-               restaurant.videos.length > 0;
+  panelSize = Math.max(0, Math.min(2, size));
+
+  panel.classList.remove("short", "tall");
+
+  if (panelSize === 0) {
+
+    panel.classList.add("short");
+
+  }
+
+  if (panelSize === 2) {
+
+    panel.classList.add("tall");
+
+  }
+
+}
+
+document.getElementById("resize")
+  .addEventListener("click", () => {
+
+    setPanelSize((panelSize + 1) % 3);
+
+  });
+
+/* SWIPE PANEL */
+
+const dragHandle = document.getElementById(
+  "drag-handle"
+);
+
+let dragStartY = null;
+
+let dragPointerId = null;
+
+dragHandle.addEventListener("pointerdown", event => {
+
+  dragStartY = event.clientY;
+
+  dragPointerId = event.pointerId;
+
+  dragHandle.setPointerCapture(event.pointerId);
+
+});
+
+dragHandle.addEventListener("pointerup", event => {
+
+  if (dragStartY === null) return;
+
+  const distance = event.clientY - dragStartY;
+
+  if (distance < -35) {
+
+    setPanelSize(panelSize + 1);
+
+  } else if (distance > 35) {
+
+    if (panelSize === 0) {
+
+      closePanel();
+
+    } else {
+
+      setPanelSize(panelSize - 1);
+
+    }
+
+  }
+
+  if (dragHandle.hasPointerCapture(dragPointerId)) {
+
+    dragHandle.releasePointerCapture(dragPointerId);
+
+  }
+
+  dragStartY = null;
+
+  dragPointerId = null;
+
+});
+
+dragHandle.addEventListener("pointercancel", () => {
+
+  dragStartY = null;
+
+  dragPointerId = null;
+
+});
+
+/* EXPAND VIDEO */
+
+function expandVideo(video, index) {
+
+  lastExpandIndex = index;
+
+  content.querySelectorAll(".video-frame")
+    .forEach(frame => {
+
+      frame.innerHTML = "";
+
+    });
+
+  document.getElementById("modal-title")
+    .textContent =
+      video.platform + " · " + video.creator;
+
+  document.getElementById("modal-link")
+    .href = video.url;
+
+  modalPlayer.innerHTML = createPlayer(video, true);
+
+  panel.inert = true;
+
+  header.inert = true;
+
+  document.getElementById("map").inert = true;
+
+  modal.classList.add("open");
+
+  modal.setAttribute("aria-hidden", "false");
+
+  document.getElementById("modal-close").focus();
+
+}
+
+/* CLOSE EXPANDED VIDEO */
+
+function closeExpandedVideo(restoreGallery = true) {
+
+  modal.classList.remove("open");
+
+  modal.setAttribute("aria-hidden", "true");
+
+  modalPlayer.innerHTML = "";
+
+  panel.inert = !currentRestaurant;
+
+  header.inert = false;
+
+  document.getElementById("map").inert = false;
+
+  if (currentRestaurant && restoreGallery) {
+
+    renderVideoGallery();
+
+    const button = content.querySelector(
+
+      `[data-video-index="${lastExpandIndex}"]`
+
+    );
+
+    if (button) {
+
+      button.focus({
+        preventScroll: true
       });
 
-      filtered.forEach(restaurant => {
-        const element = document.createElement("button");
-        element.className = "pin";
-        element.textContent = "🍔";
-        element.title = restaurant.name;
-        element.setAttribute(
-          "aria-label",
-          "View " + restaurant.name
+    }
+
+  }
+
+  lastExpandIndex = null;
+
+}
+
+document.getElementById("modal-close")
+  .addEventListener("click", () => {
+
+    closeExpandedVideo();
+
+  });
+
+modal.addEventListener("click", event => {
+
+  if (event.target === modal) {
+
+    closeExpandedVideo();
+
+  }
+
+});
+
+/* VIDEO BUTTONS AND FILTERS */
+
+content.addEventListener("click", event => {
+
+  if (!currentRestaurant) return;
+
+  const filter = event.target.closest(".video-filter");
+
+  if (filter) {
+
+    activePlatform = filter.dataset.platform;
+
+    content.querySelectorAll(".video-filter")
+      .forEach(button => {
+
+        const active =
+          button.dataset.platform === activePlatform;
+
+        button.classList.toggle("active", active);
+
+        button.setAttribute(
+          "aria-pressed",
+          String(active)
         );
 
-        element.addEventListener("click", () => {
-          showRestaurant(restaurant);
-
-          map.flyTo({
-            center: [restaurant.lng, restaurant.lat],
-            zoom: Math.max(map.getZoom(), 12)
-          });
-        });
-
-        const marker = new maplibregl.Marker({
-          element,
-          anchor: "center"
-        })
-          .setLngLat([restaurant.lng, restaurant.lat])
-          .addTo(map);
-
-        markers.push(marker);
       });
 
-      if (filtered.length === 0) {
-        closePanel();
-      }
+    renderVideoGallery();
+
+    return;
+
+  }
+
+  const expandButton = event.target.closest(
+    ".expand-button"
+  );
+
+  if (!expandButton) return;
+
+  const index = Number(
+    expandButton.dataset.videoIndex
+  );
+
+  const video = currentRestaurant.videos[index];
+
+  if (video) {
+
+    expandVideo(video, index);
+
+  }
+
+});
+
+/* KEYBOARD CONTROLS */
+
+document.addEventListener("keydown", event => {
+
+  if (event.key !== "Escape") return;
+
+  if (modal.classList.contains("open")) {
+
+    closeExpandedVideo();
+
+  } else if (panel.classList.contains("open")) {
+
+    closePanel();
+
+  }
+
+});
+
+/* RESTAURANT MARKERS */
+
+function renderMarkers() {
+
+  if (!map) return;
+
+  markers.forEach(item => item.marker.remove());
+
+  markers.length = 0;
+
+  const query = search.value.trim().toLowerCase();
+
+  const filtered = restaurants.filter(restaurant => {
+
+    const matchesCity =
+
+      activeCity === "all" ||
+
+      restaurant.city === activeCity;
+
+    const searchableText = [
+
+      restaurant.name,
+
+      restaurant.city,
+
+      restaurant.category,
+
+      restaurant.address
+
+    ].join(" ").toLowerCase();
+
+    return matchesCity &&
+
+      searchableText.includes(query) &&
+
+      restaurant.videos.length > 0;
+
+  });
+
+  resultsMessage.style.display =
+
+    filtered.length === 0 ? "block" : "none";
+
+  filtered.forEach(restaurant => {
+
+    const element = document.createElement("button");
+
+    element.className = "pin";
+
+    element.textContent = "🍔";
+
+    element.title = restaurant.name;
+
+    element.setAttribute(
+
+      "aria-label",
+
+      "View " + restaurant.name
+
+    );
+
+    if (
+
+      currentRestaurant &&
+
+      currentRestaurant.id === restaurant.id
+
+    ) {
+
+      element.classList.add("selected");
+
     }
 
-    search.addEventListener("input", renderMarkers);
+    element.addEventListener("click", event => {
 
-    document.querySelectorAll(
-      ".filters button"
-    ).forEach(button => {
-      button.addEventListener("click", () => {
-        document.querySelectorAll(
-          ".filters button"
-        ).forEach(b => b.classList.remove("active"));
+      event.stopPropagation();
 
-        button.classList.add("active");
+      lastMarker = element;
 
-        activeCity = button.dataset.city;
+      showRestaurant(restaurant);
 
-        const cityViews = {
-          Manchester: [-2.2446, 53.4808],
-          Liverpool: [-2.9785, 53.4084],
-          Warrington: [-2.5874, 53.3900]
-        };
+      map.flyTo({
 
-        if (activeCity === "all") {
-          map.flyTo({
-            center: [-2.85, 53.43],
-            zoom: 9
-          });
-        } else {
-          map.flyTo({
-            center: cityViews[activeCity],
-            zoom: 12
-          });
-        }
+        center: [
 
-        closePanel();
-        renderMarkers();
+          restaurant.lng,
+
+          restaurant.lat
+
+        ],
+
+        zoom: Math.max(map.getZoom(), 12),
+
+        offset: window.innerWidth <= 650
+
+          ? [0, -map.getContainer().clientHeight * 0.35]
+
+          : [-200, 0]
+
       });
+
     });
 
-    map.on("load", renderMarkers);
-  </script>
+    const marker = new maplibregl.Marker({
 
-  <script
-    async
-    src="https://www.instagram.com/embed.js">
-  </script>
+      element,
+
+      anchor: "center"
+
+    })
+
+    .setLngLat([
+
+      restaurant.lng,
+
+      restaurant.lat
+
+    ])
+
+    .addTo(map);
+
+    markers.push({
+
+      marker,
+
+      element,
+
+      restaurant
+
+    });
+
+  });
+
+  if (
+
+    currentRestaurant &&
+
+    !filtered.some(
+
+      restaurant => restaurant.id === currentRestaurant.id
+
+    )
+
+  ) {
+
+    closePanel();
+
+  }
+
+}
+
+/* SEARCH */
+
+search.addEventListener("input", renderMarkers);
+
+search.addEventListener("keydown", event => {
+
+  if (event.key !== "Enter" || !map) return;
+
+  if (markers.length === 1) {
+
+    const restaurant = markers[0].restaurant;
+
+    map.flyTo({
+
+      center: [
+
+        restaurant.lng,
+
+        restaurant.lat
+
+      ],
+
+      zoom: 13
+
+    });
+
+    search.blur();
+
+  }
+
+});
+
+/* CITY FILTERS */
+
+const cityViews = {
+
+  Manchester: [-2.2446, 53.4808],
+
+  Liverpool: [-2.9785, 53.4084],
+
+  Warrington: [-2.5874, 53.3900]
+
+};
+
+document.querySelectorAll(".filters button")
+  .forEach(button => {
+
+    button.addEventListener("click", () => {
+
+      if (!map) return;
+
+      document.querySelectorAll(".filters button")
+        .forEach(item => {
+
+          item.classList.remove("active");
+
+        });
+
+      button.classList.add("active");
+
+      activeCity = button.dataset.city;
+
+      search.value = "";
+
+      closePanel();
+
+      if (activeCity === "all") {
+
+        map.flyTo({
+
+          center: [-2.85, 53.43],
+
+          zoom: 9
+
+        });
+
+      } else {
+
+        map.flyTo({
+
+          center: cityViews[activeCity],
+
+          zoom: 12
+
+        });
+
+      }
+
+      renderMarkers();
+
+    });
+
+  });
+
+/* MAP EVENTS */
+
+if (map) {
+
+  map.on("load", renderMarkers);
+
+  map.on("click", event => {
+
+    if (event.originalEvent.target.closest(".pin")) {
+
+      return;
+
+    }
+
+    if (panel.classList.contains("open")) {
+
+      closePanel();
+
+    }
+
+  });
+
+  window.addEventListener("resize", () => {
+
+    map.resize();
+
+  });
+
+}
+
+</script>
 
 </body>
 </html>
