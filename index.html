@@ -2110,5 +2110,126 @@ if (map) {
 
 </script>
 
+<script>
+const SUPABASE_URL = "https://ptpeqcbuiexoogsqskat.supabase.co";
+
+const SUPABASE_KEY = "sb_publishable_EHd_48_rqLUurrLqHY_DeQ_i2oBwa9J";
+
+let databaseStatus = "loading";
+
+const originalRenderMarkers = renderMarkers;
+
+renderMarkers = function () {
+  originalRenderMarkers();
+
+  if (databaseStatus === "loading") {
+    resultsMessage.textContent = "Loading restaurants...";
+    resultsMessage.style.display = "block";
+  } else if (databaseStatus === "error") {
+    resultsMessage.textContent = "Unable to load restaurants. Please refresh.";
+    resultsMessage.style.display = "block";
+  } else {
+    resultsMessage.textContent = "No restaurants found";
+  }
+};
+
+restaurants.length = 0;
+
+document.querySelector(".version-label").textContent =
+  "SocialScran V0.6";
+
+async function loadRestaurants() {
+  try {
+    const url = SUPABASE_URL +
+      "/rest/v1/restaurants?select=*,video_reviews(*,creators(*))&approved=eq.true";
+
+    const response = await fetch(url, {
+      headers: {
+        apikey: SUPABASE_KEY
+      },
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      throw new Error("Database request failed");
+    }
+
+    const data = await response.json();
+
+    const loadedRestaurants = data
+      .filter(row =>
+        row.latitude != null &&
+        row.longitude != null &&
+        Number.isFinite(Number(row.latitude)) &&
+        Number.isFinite(Number(row.longitude)) &&
+        Math.abs(Number(row.latitude)) <= 90 &&
+        Math.abs(Number(row.longitude)) <= 180
+      )
+      .map(row => ({
+        id: row.id,
+        name: row.name,
+        city: row.city || "",
+        category: row.category || "Food",
+        address: row.address || "Address not available",
+        hours: row.opening_hours || "Opening times not verified",
+        lat: Number(row.latitude),
+        lng: Number(row.longitude),
+        demo: row.name === "Liverpool Food Review Demo",
+
+        videos: (row.video_reviews || [])
+          .filter(video =>
+            video.approved === true &&
+            video.creators?.approved === true &&
+            ["tiktok", "instagram"].includes(video.platform) &&
+            /^[a-zA-Z0-9_-]+$/.test(video.platform_video_id || "")
+          )
+          .map(video => {
+            const isTikTok = video.platform === "tiktok";
+
+            const username = isTikTok
+              ? video.creators.tiktok_username
+              : video.creators.instagram_username;
+
+            const id = video.platform_video_id;
+
+            return {
+              platform: isTikTok ? "TikTok" : "Instagram",
+              creator: username
+                ? "@" + username
+                : video.creators.display_name,
+              id: id,
+              url: isTikTok
+                ? "https://www.tiktok.com/@" +
+                  encodeURIComponent(username || "") +
+                  "/video/" + encodeURIComponent(id)
+                : "https://www.instagram.com/reel/" +
+                  encodeURIComponent(id) + "/"
+            };
+          })
+      }))
+      .filter(restaurant => restaurant.videos.length > 0);
+
+    restaurants.push(...loadedRestaurants);
+
+    databaseStatus = "ready";
+
+    renderMarkers();
+
+    console.log("SocialScran database connected");
+
+  } catch (error) {
+    console.error("SocialScran database error:", error);
+
+    databaseStatus = "error";
+
+    renderMarkers();
+  }
+}
+
+renderMarkers();
+loadRestaurants();
+</script>
+
+
 </body>
 </html>
