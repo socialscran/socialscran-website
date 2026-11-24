@@ -579,6 +579,10 @@ input:focus-visible {
     font-size: 13px;
   }
 }
+ .restaurant-marker,.restaurant-marker.popular,.restaurant-marker.selected {width:24px;height:32px;background:transparent;border:0;border-radius:0;box-shadow:none;padding:0;position:relative;overflow:visible;}
+.restaurant-marker::before {content:"";position:absolute;left:11px;top:12px;width:2px;height:19px;background:#a1a1aa;border-radius:2px;box-shadow:0 0 1px #222;}
+.restaurant-marker::after {content:"";position:absolute;left:4px;top:2px;width:16px;height:16px;border:1.5px solid white;border-radius:50%;background:var(--pin-color);box-shadow:0 1px 4px #0007;box-sizing:border-box;}
+.restaurant-marker.selected::after {outline:3px solid var(--orange);outline-offset:2px;}
 </style>
 </head>
 
@@ -591,7 +595,7 @@ input:focus-visible {
   <div class="brand-row">
     <div class="brand">
       Social<span>Scran</span> 🍔
-      <small class="version">V0.9 · Quick Add Update</small>
+      <small class="version">V0.9.1 · Discovery Update</small>
     </div>
 
     <select id="theme-select" class="theme-control" aria-label="Map and website theme">
@@ -617,7 +621,8 @@ input:focus-visible {
     <button class="pill" data-city="Warrington">Warrington</button>
   </div>
 
-  <div id="status" role="status"></div>
+  <details id="tag-filter" style="background:var(--background);border-radius:12px;padding:10px;margin-top:8px;box-shadow:var(--shadow)"><summary style="cursor:pointer">Food filters</summary><div id="tag-buttons" style="display:flex;flex-wrap:wrap;gap:6px;max-height:32vh;overflow:auto;margin-top:8px"></div><button id="clear-tags" class="pill">Clear filters</button></details>
+  <div id="status" role="status"></div><div style="margin-top:6px;background:var(--background);padding:7px;border-radius:8px;font-size:11px;display:flex;gap:9px;flex-wrap:wrap"><span>⚪ Standard</span><span style="color:#ff7540">● Popular</span><span style="color:#ef4444">● Trending</span><span style="color:#c99400">● Hotspot</span></div>
 
 </div>
 
@@ -714,6 +719,10 @@ const cities = {
   }
 };
 
+const FOOD_TAGS = ["British", "American", "Italian", "Indian", "Chinese", "Japanese", "Korean", "Thai", "Mexican", "Turkish", "Brazilian", "Greek", "Caribbean", "Vietnamese", "Middle Eastern", "Burgers", "Pizza", "Steak", "Sandwiches", "Sushi", "Pasta", "Seafood", "BBQ", "Fried Chicken", "Desserts", "Breakfast", "Street Food", "Fine Dining", "Buffet", "Takeaway", "Caf\u00e9", "Pub Food", "Casual Dining", "Halal", "Vegan", "Vegetarian", "Gluten Free"];
+function tagsFrom(value) { return String(value || "").split(/[,;]+/).map(t => t.trim()).filter(Boolean).map(t => FOOD_TAGS.find(x => x.toLowerCase() === t.toLowerCase()) || ({burger:"Burgers",sandwich:"Sandwiches",english:"British",barbecue:"BBQ",cafe:"Café"}[t.toLowerCase()]) || t); }
+let selectedTags = new Set();
+let shuffledVideos = [];
 let restaurants = [];
 let markers = [];
 let selectedRestaurant = null;
@@ -991,6 +1000,7 @@ async function loadRestaurants() {
       .filter(item => item.videos.length > 0);
 
     databaseReady = true;
+    renderTagButtons();
     databaseFailed = false;
 
     renderMarkers();
@@ -1018,6 +1028,12 @@ async function loadRestaurants() {
 
 }
 
+function renderTagButtons() {
+  const box = document.getElementById("tag-buttons"); box.replaceChildren();
+  const available = [...new Set(restaurants.flatMap(r=>tagsFrom(r.category)))].sort();
+  for (const tag of available) { const b=document.createElement("button"); b.className="pill"+(selectedTags.has(tag)?" active":""); b.textContent=tag; b.setAttribute("aria-pressed",String(selectedTags.has(tag))); b.onclick=()=>{selectedTags.has(tag)?selectedTags.delete(tag):selectedTags.add(tag);renderTagButtons();renderMarkers();};box.append(b); }
+}
+document.getElementById("clear-tags").onclick=()=>{selectedTags.clear();renderTagButtons();renderMarkers();};
 function filteredRestaurants() {
 
   const term = search.value
@@ -1041,8 +1057,7 @@ function filteredRestaurants() {
       .join(" ")
       .toLowerCase();
 
-    return matchesCity &&
-      searchableText.includes(term);
+    return matchesCity && searchableText.includes(term) && (!selectedTags.size || tagsFrom(restaurant.category).some(t=>selectedTags.has(t)));
 
   });
 
@@ -1064,7 +1079,7 @@ function renderMarkers() {
 
     element.className = "restaurant-marker";
 
-    element.textContent = "🍔";
+    element.style.setProperty("--pin-color", ({standard:"#9ca3af",popular:"#ff7540",trending:"#ef4444",featured:"#fbbf24"})[restaurant.popularity] || "#9ca3af");
 
     element.type = "button";
 
@@ -1096,7 +1111,7 @@ function renderMarkers() {
     });
 
     const marker = new maplibregl.Marker({
-      element: element
+      element: element, anchor: "bottom"
     })
       .setLngLat([
         restaurant.lng,
@@ -1261,6 +1276,8 @@ function isDemoRestaurant(restaurant) {
 function openRestaurant(restaurant) {
 
   selectedRestaurant = restaurant;
+  shuffledVideos = [...restaurant.videos];
+  for(let i=shuffledVideos.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffledVideos[i],shuffledVideos[j]]=[shuffledVideos[j],shuffledVideos[i]];}
 
   selectedPlatform = restaurant.videos.some(
     video => video.platform === "tiktok"
@@ -1606,7 +1623,7 @@ function renderVideos() {
 
   if (!selectedRestaurant) return;
 
-  const allVideos = selectedRestaurant.videos;
+  const allVideos = shuffledVideos;
 
   const visibleVideos =
     selectedPlatform === "all"

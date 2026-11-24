@@ -435,7 +435,7 @@ footer {
             </div>
 
             <div class="version">
-                V0.9 · Quick Add
+                V0.9.1 · Discovery Update
             </div>
         </div>
 
@@ -1536,7 +1536,19 @@ function addHelp(text) {
    RESTAURANT FIELDS
 ========================================= */
 
+const FOOD_TAGS = ["British", "American", "Italian", "Indian", "Chinese", "Japanese", "Korean", "Thai", "Mexican", "Turkish", "Brazilian", "Greek", "Caribbean", "Vietnamese", "Middle Eastern", "Burgers", "Pizza", "Steak", "Sandwiches", "Sushi", "Pasta", "Seafood", "BBQ", "Fried Chicken", "Desserts", "Breakfast", "Street Food", "Fine Dining", "Buffet", "Takeaway", "Caf\u00e9", "Pub Food", "Casual Dining", "Halal", "Vegan", "Vegetarian", "Gluten Free"];
+function tagsFrom(value) { return String(value || "").split(/[,;]+/).map(t => t.trim()).filter(Boolean).map(t => FOOD_TAGS.find(x => x.toLowerCase() === t.toLowerCase()) || ({burger:"Burgers",sandwich:"Sandwiches",english:"British",barbecue:"BBQ",cafe:"Café"}[t.toLowerCase()]) || t); }
 function restaurantFields(record) {
+    const selectedTags = new Set(tagsFrom(record.category));
+    function syncTags() { $("field-category").value = [...selectedTags].join(", "); editorDirty = true; }
+    function paintTags() {
+        const box = $("tag-options"); box.replaceChildren();
+        for (const tag of [...new Set([...FOOD_TAGS,...selectedTags])]) {
+            const b = makeButton((selectedTags.has(tag)?"✓ ":"")+tag, selectedTags.has(tag)?"btn":"btn btn-secondary", () => { if(busy)return; selectedTags.has(tag)?selectedTags.delete(tag):selectedTags.add(tag); syncTags(); paintTags(); });
+            b.setAttribute("aria-pressed",String(selectedTags.has(tag))); box.append(b);
+        }
+    }
+
     const query = addField("lookup", "Find restaurant (name and city)");
     const results = createElement("div");
     const lookup = makeButton("Search OpenStreetMap", "btn full", async () => {
@@ -1557,7 +1569,8 @@ function restaurantFields(record) {
                     const a = r.address || {}, e = r.extratags || {};
                     const values = {name:r.name,category:e.cuisine?.replaceAll(";", ", ").replaceAll("_", " ") || "",city:a.city || a.town || a.village || "",address:[a.house_number,a.road].filter(Boolean).join(" ") || r.display_name,postcode:a.postcode,latitude:r.lat,longitude:r.lon,opening_hours:e.opening_hours,website_url:e.website || e["contact:website"]};
                     for (const [k,v] of Object.entries(values)) $("field-"+k).value = v || "";
-                    editorDirty = true;
+                    for (const tag of tagsFrom(values.category)) if (! ["Halal","Vegan","Vegetarian","Gluten Free"].includes(tag)) selectedTags.add(tag);
+                    syncTags(); paintTags();
                     results.textContent = "Details filled. Check the branch and missing fields. © OpenStreetMap contributors";
                 }));
             }
@@ -1575,13 +1588,12 @@ function restaurantFields(record) {
         true
     );
 
-    addField(
-        "category",
-        "Food category",
-        record.category,
-        "text",
-        true
-    );
+    const categoryInput = addField("category", "Food tags", record.category, "text", false);
+    categoryInput.readOnly = true;
+    const tagBox = createElement("div"); tagBox.id = "tag-options"; tagBox.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin-top:10px";
+    $("editor-fields").append(tagBox); paintTags();
+    addHelp("Choose multiple tags. Verify dietary claims before selecting them.");
+    addField("popularity", "Map popularity (manual)", record.popularity || "standard", "select", true, ["standard","popular","trending","featured"].map(value=>({value,label:({standard:"Standard",popular:"Popular",trending:"Trending",featured:"Hotspot"})[value]})));
 
     addField(
         "city",
@@ -1821,6 +1833,7 @@ function videoFields(record) {
             } else if (["www.instagram.com","instagram.com"].includes(u.hostname)) $("field-platform").value = "instagram";
         } catch(e) {}
     });
+    addCheckbox("approve_creator", "Approve newly created TikTok creator", false);
     addHelp("TikTok creators are matched or created automatically on save. Instagram requires a selected creator.");
     addHelp(
         "Paste the full TikTok video or Instagram Reel URL. " +
@@ -2187,9 +2200,7 @@ function buildPayload(table) {
 
         };
 
-        if (!editingId) {
-            payload.popularity = "standard";
-        }
+        payload.popularity = field("popularity");
 
         return payload;
     }
@@ -2312,7 +2323,7 @@ $("editor-form").addEventListener(
                     if (!/^[A-Za-z0-9_.]+$/.test(handle)) throw new Error("Invalid TikTok username.");
                     let creator = data.creators.find(c => (c.tiktok_username || "").replace(/^@/, "").toLowerCase() === handle.toLowerCase());
                     if (!creator) {
-                        const result = await db.from("creators").insert({display_name:handle,tiktok_username:handle,verified:false,approved:payload.approved}).select("*").single();
+                        const result = await db.from("creators").insert({display_name:handle,tiktok_username:handle,verified:false,approved:checked("approve_creator")}).select("*").single();
                         if(result.error) throw result.error;
                         creator = result.data; data.creators.push(creator);
                     }
@@ -2351,7 +2362,7 @@ $("editor-form").addEventListener(
             closeEditor(true);
 
             await loadData();
-            if (nextVideo && data.restaurants.some(r => r.id === result.data.id)) openEditor("video_reviews", {restaurant_id:result.data.id});
+            if (nextVideo && data.restaurants.some(r => r.id === result.data.id)) { openEditor("video_reviews", {restaurant_id:result.data.id}); $("field-restaurant_id").value = result.data.id; }
 
             if ($("dashboard-message").hidden) {
 
