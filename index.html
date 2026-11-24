@@ -579,7 +579,8 @@ input:focus-visible {
     font-size: 13px;
   }
 }
- .restaurant-marker,.restaurant-marker.popular,.restaurant-marker.selected {width:24px;height:32px;background:transparent;border:0;border-radius:0;box-shadow:none;padding:0;position:relative;overflow:visible;}
+ .restaurant-marker,.restaurant-marker.popular,.restaurant-marker.selected {width:24px;height:32px;background:transparent;border:0;border-radius:0;box-shadow:none;padding:0;position:absolute;overflow:visible;}
+.restaurant-cluster {position:absolute;width:34px;height:34px;border:2px solid #ffb18f;border-radius:50%;background:#ff7540;color:#171717;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 1px 5px #0007;padding:0;}
 .restaurant-marker::before {content:"";position:absolute;left:11px;top:12px;width:2px;height:19px;background:#a1a1aa;border-radius:2px;box-shadow:0 0 1px #222;}
 .restaurant-marker::after {content:"";position:absolute;left:4px;top:2px;width:16px;height:16px;border:1.5px solid white;border-radius:50%;background:var(--pin-color);box-shadow:0 1px 4px #0007;box-sizing:border-box;}
 .restaurant-marker.selected::after {outline:3px solid var(--orange);outline-offset:2px;}
@@ -595,7 +596,7 @@ input:focus-visible {
   <div class="brand-row">
     <div class="brand">
       Social<span>Scran</span> 🍔
-      <small class="version">V0.9.2 · Quick Population Update</small>
+      <small class="version">V0.9.3 · Map Clustering</small>
     </div>
 
     <select id="theme-select" class="theme-control" aria-label="Map and website theme">
@@ -843,6 +844,8 @@ map.on("load", () => {
   renderMarkers();
 });
 
+map.on("zoomend", renderMarkers);
+
 map.on("error", event => {
   console.warn("Map:", event.error);
 });
@@ -1069,7 +1072,29 @@ function renderMarkers() {
 
   const filtered = filteredRestaurants();
 
-  filtered.forEach(restaurant => {
+  const groups = [];
+  for (const restaurant of filtered) {
+    const point = map.project([restaurant.lng, restaurant.lat]);
+    const group = map.getZoom() < 17 && groups.find(g => Math.hypot(g.x-point.x,g.y-point.y) < 38);
+    if (group) group.items.push(restaurant);
+    else groups.push({x:point.x,y:point.y,items:[restaurant]});
+  }
+  groups.forEach(group => {
+    const restaurant = group.items[0];
+    if (group.items.length > 1) {
+      const element = document.createElement("button");
+      element.type = "button";
+      element.className = "restaurant-cluster";
+      element.textContent = group.items.length;
+      element.setAttribute("aria-label", `${group.items.length} restaurants; zoom in`);
+      element.addEventListener("click", event => {
+        event.stopPropagation();
+        map.easeTo({center:[restaurant.lng,restaurant.lat],zoom:Math.min(17,map.getZoom()+2),duration:450});
+      });
+      const marker = new maplibregl.Marker({element,anchor:"center"}).setLngLat([restaurant.lng,restaurant.lat]).addTo(map);
+      markers.push({marker,element,restaurant});
+      return;
+    }
 
     const element = document.createElement("button");
 
