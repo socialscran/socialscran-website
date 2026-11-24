@@ -435,7 +435,7 @@ footer {
             </div>
 
             <div class="version">
-                V0.8.1 · Admin Dashboard
+                V0.9 · Quick Add
             </div>
         </div>
 
@@ -676,6 +676,7 @@ footer {
                     Cancel
                 </button>
 
+                <button id="save-next" class="btn" type="submit" hidden>Save &amp; Add Video</button>
                 <button
                     id="save-button"
                     class="btn"
@@ -1536,6 +1537,35 @@ function addHelp(text) {
 ========================================= */
 
 function restaurantFields(record) {
+    const query = addField("lookup", "Find restaurant (name and city)");
+    const results = createElement("div");
+    const lookup = makeButton("Search OpenStreetMap", "btn full", async () => {
+        if (!query.value.trim() || busy) return;
+        lookup.disabled = true;
+        results.textContent = "Searching…";
+        try {
+            const params = new URLSearchParams({q:query.value.trim(),format:"jsonv2",addressdetails:"1",extratags:"1",countrycodes:"gb",limit:"6"});
+            const response = await fetch("https://nominatim.openstreetmap.org/search?" + params);
+            if (!response.ok) throw new Error("Search unavailable; use postcode or manual entry.");
+            const rows = await response.json();
+            if (!results.isConnected) return;
+            results.replaceChildren();
+            if (!rows.length) results.textContent = "No matches. Try postcode lookup.";
+            for (const r of rows) {
+                results.append(makeButton(r.display_name, "btn btn-secondary full", () => {
+                    if (busy || !results.isConnected) return;
+                    const a = r.address || {}, e = r.extratags || {};
+                    const values = {name:r.name,category:e.cuisine?.replaceAll(";", ", ").replaceAll("_", " ") || "",city:a.city || a.town || a.village || "",address:[a.house_number,a.road].filter(Boolean).join(" ") || r.display_name,postcode:a.postcode,latitude:r.lat,longitude:r.lon,opening_hours:e.opening_hours,website_url:e.website || e["contact:website"]};
+                    for (const [k,v] of Object.entries(values)) $("field-"+k).value = v || "";
+                    editorDirty = true;
+                    results.textContent = "Details filled. Check the branch and missing fields. © OpenStreetMap contributors";
+                }));
+            }
+        } catch(e) { results.textContent = errorText(e); }
+        finally { setTimeout(() => { lookup.disabled = false; }, 1100); }
+    });
+    $("editor-fields").append(lookup, results);
+    addHelp("Search results: © OpenStreetMap contributors. Confirm all details before saving.");
 
     addField(
         "name",
@@ -1575,6 +1605,26 @@ function restaurantFields(record) {
         record.postcode
     );
 
+    const postcodeButton = makeButton("Find coordinates from postcode", "btn btn-secondary full", async () => {
+        const postcode = field("postcode");
+        if (!postcode || busy) return;
+        postcodeButton.disabled = true;
+        try {
+            const response = await fetch("https://api.postcodes.io/postcodes/" + encodeURIComponent(postcode));
+            const json = await response.json();
+            if (!response.ok || !json.result) throw new Error("Postcode not found.");
+            const r = json.result;
+            if (!postcodeButton.isConnected || field("postcode") !== postcode) return;
+            $("field-postcode").value = r.postcode;
+            $("field-latitude").value = r.latitude;
+            $("field-longitude").value = r.longitude;
+            if (!field("city")) $("field-city").value = r.admin_district || "";
+            editorDirty = true;
+            showMessage("editor-message", "Postcode coordinates filled (approximate). Check the location.", "success");
+        } catch(e) { if(postcodeButton.isConnected) showMessage("editor-message", errorText(e), "error"); }
+        finally { postcodeButton.disabled = false; }
+    });
+    $("editor-fields").append(postcodeButton);
     const latitude = addField(
         "latitude",
         "Latitude",
@@ -1599,6 +1649,11 @@ function restaurantFields(record) {
 
     longitude.max = 180;
 
+    const advanced = createElement("details");
+    advanced.append(createElement("summary", "Advanced: map coordinates"));
+    for (const el of [latitude, longitude]) advanced.append(el.previousElementSibling, el);
+    $("editor-fields").append(advanced);
+    latitude.required = longitude.required = false;
     addHelp(
         "Use verified coordinates from a map. " +
         "Latitude and longitude determine the restaurant pin."
@@ -1716,7 +1771,7 @@ function videoFields(record) {
         "Creator",
         record.creator_id,
         "select",
-        true,
+        false,
         data.creators.map(creator => ({
 
             value: creator.id,
@@ -1755,6 +1810,18 @@ function videoFields(record) {
         true
     );
 
+    $("field-video_url").addEventListener("input", () => {
+        try {
+            const u = new URL(field("video_url"));
+            if (["www.tiktok.com","tiktok.com"].includes(u.hostname)) {
+                $("field-platform").value = "tiktok";
+                const v = parseVideo("tiktok",u.href);
+                const handle = new URL(v.url).pathname.split("/")[1].slice(1).toLowerCase();
+                $("field-creator_id").value = data.creators.find(c => (c.tiktok_username || "").replace(/^@/, "").toLowerCase() === handle)?.id || "";
+            } else if (["www.instagram.com","instagram.com"].includes(u.hostname)) $("field-platform").value = "instagram";
+        } catch(e) {}
+    });
+    addHelp("TikTok creators are matched or created automatically on save. Instagram requires a selected creator.");
     addHelp(
         "Paste the full TikTok video or Instagram Reel URL. " +
         "The video ID will be extracted automatically. " +
@@ -1787,18 +1854,19 @@ function openEditor(table, record = {}) {
 
     if (
         table === "video_reviews" &&
-        (!data.restaurants.length || !data.creators.length)
+        (!data.restaurants.length)
     ) {
 
         showMessage(
             "dashboard-message",
-            "Add a restaurant and creator before adding a video.",
+            "Add a restaurant before adding a video.",
             "error"
         );
 
         return;
     }
 
+    $("save-next").hidden = table !== "restaurants";
     editingTable = table;
 
     editingId = record.id || null;
@@ -2237,6 +2305,22 @@ $("editor-form").addEventListener(
             const table = editingTable;
 
             const payload = buildPayload(table);
+            if (table === "restaurants" && data.restaurants.some(r => r.id !== editingId && r.name.trim().toLowerCase() === payload.name.toLowerCase() && ((payload.postcode && (r.postcode || "").replace(/\s/g, "").toLowerCase() === payload.postcode.replace(/\s/g, "").toLowerCase()) || (r.address || "").trim().toLowerCase() === payload.address.toLowerCase()))) throw new Error("Possible duplicate restaurant. Check existing records.");
+            if (table === "video_reviews") {
+                if (payload.platform === "tiktok" && !editingId) {
+                    const handle = new URL(payload.video_url).pathname.split("/")[1].slice(1);
+                    if (!/^[A-Za-z0-9_.]+$/.test(handle)) throw new Error("Invalid TikTok username.");
+                    let creator = data.creators.find(c => (c.tiktok_username || "").replace(/^@/, "").toLowerCase() === handle.toLowerCase());
+                    if (!creator) {
+                        const result = await db.from("creators").insert({display_name:handle,tiktok_username:handle,verified:false,approved:payload.approved}).select("*").single();
+                        if(result.error) throw result.error;
+                        creator = result.data; data.creators.push(creator);
+                    }
+                    payload.creator_id = creator.id;
+                }
+                if (!payload.creator_id) throw new Error("Select a creator first.");
+            }
+            const nextVideo = table === "restaurants" && event.submitter?.id === "save-next";
 
             let result;
 
@@ -2267,6 +2351,7 @@ $("editor-form").addEventListener(
             closeEditor(true);
 
             await loadData();
+            if (nextVideo && data.restaurants.some(r => r.id === result.data.id)) openEditor("video_reviews", {restaurant_id:result.data.id});
 
             if ($("dashboard-message").hidden) {
 

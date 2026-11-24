@@ -591,7 +591,7 @@ input:focus-visible {
   <div class="brand-row">
     <div class="brand">
       Social<span>Scran</span> 🍔
-      <small class="version">V0.7 · Database Update</small>
+      <small class="version">V0.9 · Quick Add Update</small>
     </div>
 
     <select id="theme-select" class="theme-control" aria-label="Map and website theme">
@@ -1331,7 +1331,7 @@ function openRestaurant(restaurant) {
     directions.href =
       "https://www.google.com/maps/dir/?api=1&destination=" +
       encodeURIComponent(
-        restaurant.lat + "," + restaurant.lng
+        [restaurant.name, restaurant.address, restaurant.city, restaurant.postcode].filter(Boolean).join(", ")
       );
 
     directions.target = "_blank";
