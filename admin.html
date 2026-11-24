@@ -10,6 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
+
 * {
     box-sizing: border-box;
 }
@@ -296,11 +297,17 @@ input:focus, select:focus, textarea:focus {
     margin-bottom: 15px;
 }
 
+/* EDITOR WINDOW */
+
+body.editor-open {
+    overflow: hidden;
+}
+
 .modal {
     position: fixed;
     inset: 0;
     z-index: 100;
-    background: rgba(0,0,0,0.75);
+    background: rgba(0,0,0,0.8);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -310,18 +317,23 @@ input:focus, select:focus, textarea:focus {
 .modal-content {
     width: 100%;
     max-width: 550px;
-    max-height: 90dvh;
-    overflow-y: auto;
+    max-height: 85vh;
+    max-height: 85dvh;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 18px;
-    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .modal-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
 }
 
 .modal-header h2 {
@@ -337,6 +349,33 @@ input:focus, select:focus, textarea:focus {
     height: 38px;
     border-radius: 50%;
     font-size: 22px;
+}
+
+#editor-form {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.editor-body {
+    padding: 5px 20px 20px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    min-height: 0;
+}
+
+.editor-footer {
+    padding: 15px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--card);
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.editor-footer button {
+    flex: 1;
 }
 
 .checkbox-row {
@@ -370,6 +409,7 @@ footer {
 }
 
 @media (min-width: 750px) {
+
     .records {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -380,6 +420,7 @@ footer {
         margin: 0;
     }
 }
+
 </style>
 </head>
 
@@ -387,16 +428,24 @@ footer {
 
 <header>
     <div class="header-inner">
+
         <div>
-            <div class="brand">Social<span>Scran</span> 🍔</div>
-            <div class="version">V0.8 · Admin Dashboard</div>
+            <div class="brand">
+                Social<span>Scran</span> 🍔
+            </div>
+
+            <div class="version">
+                V0.8.1 · Admin Dashboard
+            </div>
         </div>
 
-        <button id="logout-button"
+        <button
+            id="logout-button"
             class="btn btn-secondary"
             hidden>
             Log out
         </button>
+
     </div>
 </header>
 
@@ -441,7 +490,8 @@ footer {
 
             </form>
 
-            <div id="login-message"
+            <div
+                id="login-message"
                 class="notice"
                 role="status"
                 hidden>
@@ -467,7 +517,8 @@ footer {
                 Manage your restaurants, creators and video reviews.
             </p>
 
-            <a class="website-link"
+            <a
+                class="website-link"
                 href="./"
                 target="_blank"
                 rel="noopener">
@@ -479,17 +530,23 @@ footer {
         <div class="stats">
 
             <div class="stat">
-                <div class="stat-number" id="restaurant-count">0</div>
+                <div
+                    class="stat-number"
+                    id="restaurant-count">0</div>
                 <div class="stat-label">Restaurants</div>
             </div>
 
             <div class="stat">
-                <div class="stat-number" id="creator-count">0</div>
+                <div
+                    class="stat-number"
+                    id="creator-count">0</div>
                 <div class="stat-label">Creators</div>
             </div>
 
             <div class="stat">
-                <div class="stat-number" id="video-count">0</div>
+                <div
+                    class="stat-number"
+                    id="video-count">0</div>
                 <div class="stat-label">Videos</div>
             </div>
 
@@ -507,17 +564,20 @@ footer {
 
         <div class="tabs">
 
-            <button class="tab active"
+            <button
+                class="tab active"
                 data-tab="restaurants">
                 🍔 Restaurants
             </button>
 
-            <button class="tab"
+            <button
+                class="tab"
                 data-tab="creators">
                 👤 Creators
             </button>
 
-            <button class="tab"
+            <button
+                class="tab"
                 data-tab="video_reviews">
                 🎬 Videos
             </button>
@@ -553,7 +613,8 @@ footer {
             ↻ Refresh records
         </button>
 
-        <div id="dashboard-message"
+        <div
+            id="dashboard-message"
             class="notice"
             role="status"
             hidden>
@@ -567,7 +628,8 @@ footer {
 
 </main>
 
-<div id="editor-modal"
+<div
+    id="editor-modal"
     class="modal"
     role="dialog"
     aria-modal="true"
@@ -583,6 +645,7 @@ footer {
             <button
                 id="close-editor"
                 class="close"
+                type="button"
                 aria-label="Close">
                 ×
             </button>
@@ -591,20 +654,36 @@ footer {
 
         <form id="editor-form">
 
-            <div id="editor-fields"></div>
+            <div class="editor-body">
 
-            <div id="editor-message"
-                class="notice"
-                role="status"
-                hidden>
+                <div id="editor-fields"></div>
+
+                <div
+                    id="editor-message"
+                    class="notice"
+                    role="status"
+                    hidden>
+                </div>
+
             </div>
 
-            <button
-                id="save-button"
-                class="btn full"
-                type="submit">
-                Save record
-            </button>
+            <div class="editor-footer">
+
+                <button
+                    id="cancel-editor"
+                    class="btn btn-secondary"
+                    type="button">
+                    Cancel
+                </button>
+
+                <button
+                    id="save-button"
+                    class="btn"
+                    type="submit">
+                    Save record
+                </button>
+
+            </div>
 
         </form>
 
@@ -620,14 +699,9 @@ footer {
 
 /* =========================================
    SUPABASE CONFIGURATION
-
-   Copy your existing Supabase project URL
-   and public API key from index.html.
-
-   NEVER use a service-role or secret key.
 ========================================= */
 
-const SUPABASE_URL = "https://ptpeqcbuiexoogsqskat.supabase.co"; 
+const SUPABASE_URL = "https://ptpeqcbuiexoogsqskat.supabase.co";
 
 const SUPABASE_KEY = "sb_publishable_EHd_48_rqLUurrLqHY_DeQ_i2oBwa9J";
 
@@ -646,6 +720,8 @@ let editingTable = null;
 let busy = false;
 
 let loadVersion = 0;
+
+let editorDirty = false;
 
 let data = {
     restaurants: [],
@@ -718,7 +794,8 @@ function makeButton(text, className, action) {
 
 function errorText(error) {
 
-    return error?.message || "An unexpected error occurred.";
+    return error?.message ||
+        "An unexpected error occurred.";
 }
 
 function isAdmin(session) {
@@ -755,6 +832,21 @@ function clearData() {
     updateStats();
 }
 
+function resetEditor() {
+
+    $("editor-modal").hidden = true;
+
+    $("editor-fields").replaceChildren();
+
+    document.body.classList.remove("editor-open");
+
+    editingId = null;
+
+    editingTable = null;
+
+    editorDirty = false;
+}
+
 
 /* =========================================
    AUTHENTICATION
@@ -770,7 +862,7 @@ async function showDashboard(session) {
 
         $("logout-button").hidden = true;
 
-        $("editor-modal").hidden = true;
+        resetEditor();
 
         clearData();
 
@@ -856,6 +948,10 @@ $("login-form").addEventListener(
 $("logout-button").addEventListener(
     "click",
     async () => {
+
+        if (busy) {
+            return;
+        }
 
         $("logout-button").disabled = true;
 
@@ -1116,6 +1212,10 @@ function renderRecords() {
 
             record.creator_id
                 ? creatorName(record.creator_id)
+                : "",
+
+            record.restaurant_id
+                ? restaurantName(record.restaurant_id)
                 : ""
 
         ].join(" ").toLowerCase();
@@ -1432,7 +1532,7 @@ function addHelp(text) {
 
 
 /* =========================================
-   ADD / EDIT RESTAURANTS
+   RESTAURANT FIELDS
 ========================================= */
 
 function restaurantFields(record) {
@@ -1541,7 +1641,7 @@ function restaurantFields(record) {
 
 
 /* =========================================
-   ADD / EDIT CREATORS
+   CREATOR FIELDS
 ========================================= */
 
 function creatorFields(record) {
@@ -1588,7 +1688,7 @@ function creatorFields(record) {
 
 
 /* =========================================
-   ADD / EDIT VIDEOS
+   VIDEO FIELDS
 ========================================= */
 
 function videoFields(record) {
@@ -1676,7 +1776,7 @@ function videoFields(record) {
 
 
 /* =========================================
-   EDITOR MODAL
+   EDITOR WINDOW - V0.8.1
 ========================================= */
 
 function openEditor(table, record = {}) {
@@ -1724,22 +1824,33 @@ function openEditor(table, record = {}) {
         videoFields(record);
     }
 
+    editorDirty = false;
+
     $("editor-modal").hidden = false;
+
+    document.body.classList.add("editor-open");
+
+    document.querySelector(".editor-body").scrollTop = 0;
 }
 
-function closeEditor() {
+function closeEditor(force = false) {
 
-    if (busy) {
+    if (busy || $("editor-modal").hidden) {
         return;
     }
 
-    $("editor-modal").hidden = true;
+    if (force !== true) {
 
-    $("editor-fields").replaceChildren();
+        const confirmed = window.confirm(
+            "Are you sure you want to discard your changes?"
+        );
 
-    editingId = null;
+        if (!confirmed) {
+            return;
+        }
+    }
 
-    editingTable = null;
+    resetEditor();
 }
 
 $("add-button").addEventListener(
@@ -1749,25 +1860,61 @@ $("add-button").addEventListener(
 
 $("close-editor").addEventListener(
     "click",
-    closeEditor
+    () => closeEditor()
 );
 
-$("editor-modal").addEventListener(
+$("cancel-editor").addEventListener(
     "click",
-    event => {
-
-        if (event.target === $("editor-modal")) {
-            closeEditor();
-        }
-    }
+    () => closeEditor()
 );
+
+/* Clicking outside the editor does nothing. */
+/* Moving the mouse outside does nothing. */
 
 document.addEventListener(
     "keydown",
     event => {
 
-        if (event.key === "Escape") {
+        if (
+            event.key === "Escape" &&
+            !$("editor-modal").hidden
+        ) {
+
+            event.preventDefault();
+
             closeEditor();
+        }
+    }
+);
+
+$("editor-form").addEventListener(
+    "input",
+    () => {
+        editorDirty = true;
+    }
+);
+
+$("editor-form").addEventListener(
+    "change",
+    () => {
+        editorDirty = true;
+    }
+);
+
+/* Warn before refreshing or leaving with unsaved changes. */
+
+window.addEventListener(
+    "beforeunload",
+    event => {
+
+        if (
+            !$("editor-modal").hidden &&
+            (editorDirty || busy)
+        ) {
+
+            event.preventDefault();
+
+            event.returnValue = "";
         }
     }
 );
@@ -1838,7 +1985,7 @@ function parseVideo(platform, rawUrl) {
         }
 
         const match = url.pathname.match(
-            /^\/(?:reel|reels|p)\/([A-Za-z0-9_-]+)\/?$/
+            /^\/(reel|reels|p)\/([A-Za-z0-9_-]+)\/?$/
         );
 
         if (!match) {
@@ -1848,13 +1995,18 @@ function parseVideo(platform, rawUrl) {
             );
         }
 
+        const path =
+            match[1] === "p" ? "p" : "reel";
+
         return {
 
-            id: match[1],
+            id: match[2],
 
             url:
-                "https://www.instagram.com/reel/" +
-                match[1] +
+                "https://www.instagram.com/" +
+                path +
+                "/" +
+                match[2] +
                 "/"
 
         };
@@ -1927,6 +2079,18 @@ function buildPayload(table) {
             );
         }
 
+        if (
+            !field("name") ||
+            !field("category") ||
+            !field("city") ||
+            !field("address")
+        ) {
+
+            throw new Error(
+                "Complete all required restaurant fields."
+            );
+        }
+
         const payload = {
 
             name: field("name"),
@@ -1963,6 +2127,13 @@ function buildPayload(table) {
     }
 
     if (table === "creators") {
+
+        if (!field("display_name")) {
+
+            throw new Error(
+                "Enter a creator display name."
+            );
+        }
 
         return {
 
@@ -2051,6 +2222,10 @@ $("editor-form").addEventListener(
 
         $("save-button").disabled = true;
 
+        $("close-editor").disabled = true;
+
+        $("cancel-editor").disabled = true;
+
         $("save-button").textContent = "Saving...";
 
         hideMessage("editor-message");
@@ -2089,7 +2264,7 @@ $("editor-form").addEventListener(
 
             busy = false;
 
-            closeEditor();
+            closeEditor(true);
 
             await loadData();
 
@@ -2110,11 +2285,21 @@ $("editor-form").addEventListener(
                 "error"
             );
 
+            const editorBody =
+                document.querySelector(".editor-body");
+
+            editorBody.scrollTop =
+                editorBody.scrollHeight;
+
         } finally {
 
             busy = false;
 
             $("save-button").disabled = false;
+
+            $("close-editor").disabled = false;
+
+            $("cancel-editor").disabled = false;
 
             $("save-button").textContent = "Save record";
         }
@@ -2292,17 +2477,6 @@ async function initialise() {
 
     try {
 
-        if (
-            SUPABASE_URL.includes("PASTE_") ||
-            SUPABASE_KEY.includes("PASTE_")
-        ) {
-
-            throw new Error(
-                "Add your Supabase URL and public API key " +
-                "to the admin.html configuration first."
-            );
-        }
-
         if (!window.supabase) {
 
             throw new Error(
@@ -2341,7 +2515,7 @@ async function initialise() {
 
                     $("logout-button").hidden = true;
 
-                    $("editor-modal").hidden = true;
+                    resetEditor();
 
                     clearData();
                 }
@@ -2371,8 +2545,11 @@ async function initialise() {
         );
 
         if (!db) {
+
             $("login-button").disabled = true;
+
         } else {
+
             await db.auth.signOut();
         }
     }
