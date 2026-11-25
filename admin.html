@@ -421,6 +421,12 @@ footer {
     }
 }
 
+
+#video-searches {display:flex; flex-wrap:wrap; gap:8px; margin:10px 0;}
+#video-searches a {text-decoration:none; white-space:normal; overflow-wrap:anywhere; text-align:center;}
+#extra-branches label {display:block;}
+#extra-branches input {width:auto;}
+[hidden] {display:none !important;}
 </style>
 </head>
 
@@ -435,7 +441,7 @@ footer {
             </div>
 
             <div class="version">
-                V0.9.2 · Quick Population Update
+                V0.9.4 · Mobile Video Admin
             </div>
         </div>
 
@@ -562,7 +568,13 @@ footer {
 
         </div>
 
-        <div class="tabs">
+        <div class="card" id="video-workbench">
+<h2>Restaurants needing videos</h2><p class="muted">Target: 6 approved TikTok reviews per restaurant.</p>
+<select id="video-target" class="search"><option value="">Select restaurant</option></select>
+<p id="video-progress" class="muted"></p><div id="video-searches" class="actions"></div>
+<button id="quick-video" class="btn" type="button" disabled>+ Add TikTok links</button>
+</div>
+<div class="tabs">
 
             <button
                 class="tab active"
@@ -603,7 +615,7 @@ footer {
 
         <select id="restaurant-filter" class="search" hidden><option value="">All restaurants</option></select>
         <select id="status-filter" class="search">
-            <option value="all">All records</option>
+            <option value="all" selected>All records</option>
             <option value="approved">Approved</option>
             <option value="pending">Pending approval</option>
         </select>
@@ -892,6 +904,7 @@ async function showDashboard(session) {
 
     hideMessage("login-message");
 
+    $("status-filter").value = "all";
     await loadData();
 }
 
@@ -1064,8 +1077,34 @@ async function loadData() {
     }
 }
 
+function approvedVideoCount(id) {
+    return new Set(data.video_reviews.filter(v => v.restaurant_id === id && v.platform === "tiktok" && v.approved && data.creators.some(c => c.id === v.creator_id && c.approved)).map(v => v.platform_video_id || v.video_url)).size;
+}
+function renderVideoTarget() {
+    const r = data.restaurants.find(r => r.id === $("video-target").value);
+    const links = $("video-searches"); links.replaceChildren();
+    $("quick-video").disabled = !r;
+    $("video-progress").textContent = r ? approvedVideoCount(r.id) + "/6 approved reviews" + (r.approved ? "" : " · Restaurant pending approval") : "Choose a restaurant to find reviews.";
+    if (!r) return;
+    const base = [r.name,r.city].filter(Boolean).join(" ");
+    const queries = [base, base + " food review", [base, (r.address || "").split(",")[0]].join(" "), [base,(r.category || "").split(",")[0]].join(" ")];
+    for (const q of new Set(queries.map(q=>q.trim()))) {
+        const a = createElement("a", q + " ↗", "btn btn-secondary");
+        a.href = "https://www.tiktok.com/search?q=" + encodeURIComponent(q); a.target="_blank"; a.rel="noopener noreferrer"; links.append(a);
+    }
+}
+function refreshVideoTargets() {
+    const el = $("video-target"), previous = el.value;
+    el.replaceChildren(new Option("Select restaurant", ""));
+    const sorted = [...data.restaurants].sort((a,b)=>approvedVideoCount(a.id)-approvedVideoCount(b.id)||a.name.localeCompare(b.name));
+    for(const r of sorted) el.add(new Option(r.name + " · " + r.city + " · " + approvedVideoCount(r.id) + "/6",r.id));
+    el.value = sorted.some(r=>r.id===previous) ? previous : ""; renderVideoTarget();
+}
+$("video-target").addEventListener("change", renderVideoTarget);
+$("quick-video").addEventListener("click", ()=>{const id=$("video-target").value;if(id)openEditor("video_reviews",{restaurant_id:id});});
 function updateStats() {
 
+    refreshVideoTargets();
     $("restaurant-count").textContent =
         data.restaurants.length;
 
@@ -1091,7 +1130,10 @@ function updateStats() {
 
 $("refresh-button").addEventListener(
     "click",
-    loadData
+    () => {
+        $("status-filter").value = "all";
+        return loadData();
+    }
 );
 
 
@@ -1288,7 +1330,7 @@ function renderRecords() {
             card.append(
                 createElement(
                     "p",
-                    videos.length + " video reviews",
+                    approvedVideoCount(record.id) + "/6 approved TikTok reviews · " + videos.filter(v=>v.platform==="tiktok").length + " total TikToks",
                     "muted"
                 )
             );
@@ -1427,6 +1469,9 @@ function renderRecords() {
             )
         );
 
+        if(table === "restaurants") {
+            actions.prepend(makeButton("Find videos", "btn btn-secondary", ()=>{ $("video-target").value=record.id; renderVideoTarget(); $("video-workbench").scrollIntoView({behavior:"smooth",block:"start"}); }), makeButton("+ Add videos", "btn btn-secondary", ()=>openEditor("video_reviews",{restaurant_id:record.id})));
+        }
         card.append(actions);
 
         container.append(card);
@@ -1790,7 +1835,7 @@ function videoFields(record) {
         }))
     );
 
-    addField(
+    const creatorField = addField(
         "creator_id",
         "Creator",
         record.creator_id,
@@ -1805,17 +1850,18 @@ function videoFields(record) {
         }))
     );
 
+    if (!record.id) { creatorField.hidden = true; creatorField.previousElementSibling.hidden = true; }
     const platform = addField("platform", "Platform", "tiktok", "hidden");
     platform.previousElementSibling.hidden = true;
     addField("video_url", record.id ? "TikTok URL" : "TikTok URLs (one per line)", record.video_url, record.id ? "url" : "textarea", true);
     if(!record.id){
-        const branches = createElement("div"); branches.id="extra-branches";
+        const branches = createElement("details"); branches.id="extra-branches"; branches.append(createElement("summary","Optional: link to additional branches"));
         branches.append(createElement("p","Optional: also link these videos to other branches (only if relevant)."));
         for(const r of data.restaurants){const label=createElement("label");const c=document.createElement("input");c.type="checkbox";c.value=r.id;label.append(c,document.createTextNode(" "+r.name+" · "+r.city));branches.append(label);}
         $("editor-fields").append(branches);
     }
     addCheckbox("approve_creator", "Approve newly created TikTok creators", false);
-    addHelp("Paste full TikTok video URLs. Creators are matched automatically. Short links must be opened first.");
+    addHelp("Paste full TikTok video URLs, one per line. Creators are matched automatically. Short links must be opened first. Only approve videos and creators when you have checked permission and the correct branch.");
     addField(
         "title",
         "Video title (optional)",
@@ -2330,7 +2376,7 @@ $("editor-form").addEventListener(
                 if(!fresh.length)throw new Error("All selected branches already exist.");
                 const res=await db.from("restaurants").insert(fresh).select("id");if(res.error)throw res.error;
                 busy=false;closeEditor(true);await loadData();
-                if(nextVideo){openEditor("video_reviews",{restaurant_id:res.data[0].id});for(const c of document.querySelectorAll("#extra-branches input"))c.checked=res.data.slice(1).some(r=>r.id===c.value);}
+                if(nextVideo){openEditor("video_reviews",{restaurant_id:res.data[0].id});}
                 showMessage("dashboard-message",fresh.length+" branches saved.","success");return;
             }
             let result;
@@ -2652,6 +2698,10 @@ async function initialise() {
 }
 
 initialise();
+window.addEventListener("pageshow", () => {
+    $("status-filter").value = "all";
+    renderRecords();
+});
 
 </script>
 
