@@ -441,7 +441,7 @@ footer {
             </div>
 
             <div class="version">
-                V0.9.4 · Mobile Video Admin
+                V0.9.6 · Mobile Population
             </div>
         </div>
 
@@ -577,7 +577,8 @@ footer {
 <div class="tabs">
 
             <button
-                class="tab active"
+                class="tab active" data-tab="home">Home</button>
+            <button class="tab"
                 data-tab="restaurants">
                 🍔 Restaurants
             </button>
@@ -598,7 +599,7 @@ footer {
 
         <div class="section-header">
 
-            <h2 id="section-title">Restaurants</h2>
+            <h2 id="section-title">Things to do</h2>
 
             <button id="add-button" class="btn">
                 + Add
@@ -725,7 +726,7 @@ const $ = id => document.getElementById(id);
 
 let db = null;
 
-let activeTab = "restaurants";
+let activeTab = "home";
 
 let editingId = null;
 
@@ -744,6 +745,7 @@ let data = {
 };
 
 const titles = {
+    home: "Things to do",
     restaurants: "Restaurants",
     creators: "Creators",
     video_reviews: "Video reviews"
@@ -1210,6 +1212,26 @@ function recordTitle(table, record) {
 ========================================= */
 
 $("restaurant-filter").addEventListener("change", renderRecords);
+function renderHome(container, query) {
+    const chosen = [];
+    const bulk = makeButton("Approve selected", "btn", async()=>{
+        const rows=chosen.filter(x=>x.box.checked);
+        if(!rows.length || busy || !confirm("Approve "+rows.length+" selected records?"))return;
+        busy=true; let count=0;
+        try { await requireAdmin(); for(const x of rows){const res=await db.from(x.table).update({approved:true}).eq("id",x.record.id).select("id").single();if(res.error)throw res.error;count++;} }
+        catch(e){showMessage("dashboard-message",errorText(e),"error");}
+        finally{busy=false;await loadData();showMessage("dashboard-message",count+" of "+rows.length+" selected records approved.",count===rows.length?"success":"error");}
+    }); container.append(bulk);
+    for(const table of ["restaurants","creators","video_reviews"]){
+        const rows=data[table].filter(r=>!r.approved&&(table!=="video_reviews"||r.platform==="tiktok")&&[recordTitle(table,r),r.city,restaurantName(r.restaurant_id),creatorName(r.creator_id)].join(" ").toLowerCase().includes(query));
+        container.append(createElement("h3",titles[table]+" · "+rows.length+" pending"));
+        for(const record of rows){const card=createElement("div",null,"card");const label=createElement("label");const box=document.createElement("input");box.type="checkbox";label.append(box,document.createTextNode(" "+recordTitle(table,record)));card.append(label);chosen.push({table,record,box});
+        if(table==="video_reviews"){card.append(createElement("p",restaurantName(record.restaurant_id)+" · "+creatorName(record.creator_id),"muted"));if(!data.restaurants.some(r=>r.id===record.restaurant_id&&r.approved)||!data.creators.some(c=>c.id===record.creator_id&&c.approved))card.append(createElement("p","Restaurant or creator still needs approval.","muted"));}
+        const actions=createElement("div",null,"actions");actions.append(makeButton("Review / edit","btn btn-secondary",()=>openEditor(table,record)),makeButton("Approve","btn",()=>toggleApproval(table,record)));card.append(actions);container.append(card);}
+    }
+    container.append(createElement("h3","Restaurants needing videos"));
+    for(const r of data.restaurants.filter(r=>approvedVideoCount(r.id)<6&&[r.name,r.city].join(" ").toLowerCase().includes(query)).sort((a,b)=>approvedVideoCount(a.id)-approvedVideoCount(b.id))){const card=createElement("div",null,"card");card.append(createElement("strong",r.name+" · "+r.city),createElement("p",approvedVideoCount(r.id)+"/6 approved reviews","muted"),makeButton("Find videos","btn btn-secondary",()=>{$("video-target").value=r.id;renderVideoTarget();$("video-workbench").scrollIntoView({behavior:"smooth"});}),makeButton("Add videos","btn",()=>openEditor("video_reviews",{restaurant_id:r.id})));container.append(card);}
+}
 function renderRecords() {
     const rf = $("restaurant-filter"), previous = rf.value;
     rf.hidden = activeTab !== "video_reviews";
@@ -1229,6 +1251,9 @@ function renderRecords() {
 
     const table = activeTab;
 
+    $("add-button").hidden = table === "home";
+    $("status-filter").hidden = table === "home";
+    if(table === "home") { renderHome(container, query); return; }
     const records = data[table].filter(record => {
         if(table === "video_reviews" && (record.platform !== "tiktok" || (rf.value && record.restaurant_id !== rf.value))) return false;
 
@@ -1603,8 +1628,8 @@ function restaurantFields(record) {
         }
     }
 
-    const query = addField("lookup", "Find restaurant (name and city)");
-    const cityFilter = addField("lookup_city", "Search city", "", "select", false, ["Liverpool","Manchester","Warrington"].map(value=>({value,label:value}))); cityFilter.options[0].textContent="All UK";
+    const query = addField("lookup", "Find restaurant (name and city)", record.name || "");
+    const cityFilter = addField("lookup_city", "Search city", "", "select", false, ["Liverpool","Manchester","Warrington","Leeds","Birmingham","London"].map(value=>({value,label:value}))); cityFilter.options[0].textContent="All UK";
     const selectedLocations = new Map(); window.selectedLocations = selectedLocations;
     const results = createElement("div");
     const lookup = makeButton("Search OpenStreetMap", "btn full", async () => {
@@ -1861,7 +1886,7 @@ function videoFields(record) {
         $("editor-fields").append(branches);
     }
     addCheckbox("approve_creator", "Approve newly created TikTok creators", false);
-    addHelp("Paste full TikTok video URLs, one per line. Creators are matched automatically. Short links must be opened first. Only approve videos and creators when you have checked permission and the correct branch.");
+    addHelp("Paste TikTok video URLs, one per line. Creators are matched automatically. Short links can be resolved after the TikTok resolver is deployed. Only approve videos and creators when you have checked permission and the correct branch.");
     addField(
         "title",
         "Video title (optional)",
@@ -2026,6 +2051,15 @@ window.addEventListener(
    VIDEO URL VALIDATION
 ========================================= */
 
+async function resolveTikTok(rawUrl){
+    const url=new URL(rawUrl);
+    if(url.protocol==="https:"&&(["vm.tiktok.com","vt.tiktok.com"].includes(url.hostname)||(["www.tiktok.com","tiktok.com"].includes(url.hostname)&&url.pathname.startsWith("/t/")))){
+        const {data:result,error}=await db.functions.invoke("resolve-tiktok",{body:{url:url.href}});
+        if(error||!result?.url)throw new Error("Short link could not be resolved. Check that the resolve-tiktok Edge Function is deployed, or use the full TikTok URL: "+rawUrl);
+        return parseVideo("tiktok",result.url);
+    }
+    return parseVideo("tiktok",rawUrl);
+}
 function parseVideo(platform, rawUrl) {
 
     const url = new URL(rawUrl);
@@ -2336,7 +2370,7 @@ $("editor-form").addEventListener(
 
             if(table === "video_reviews" && !editingId){
                 const ids=[...new Set([field("restaurant_id"),...Array.from(document.querySelectorAll("#extra-branches input:checked"),c=>c.value)])].filter(Boolean);
-                const videos=[...new Map(field("video_url").split(/\s+/).filter(Boolean).map(url=>{const v=parseVideo("tiktok",url);return [v.id,v]})).values()];
+                const videos=[...new Map((await Promise.all(field("video_url").split(/\s+/).filter(Boolean).map(resolveTikTok))).map(v=>[v.id,v])).values()];
                 if(!ids.length||!videos.length) throw new Error("Select a restaurant and enter TikTok URLs.");
                 let count=0; const rows=[];
                 for(const v of videos){
@@ -2351,8 +2385,9 @@ $("editor-form").addEventListener(
                 if(rows.length){const res=await db.from("video_reviews").insert(rows);if(res.error)throw res.error;count=rows.length;}
                 busy=false;closeEditor(true);await loadData();showMessage("dashboard-message",count+" video links saved; duplicates skipped.","success");return;
             }
+            if(table === "video_reviews" && editingId) $("field-video_url").value=(await resolveTikTok(field("video_url"))).url;
             const payload = buildPayload(table);
-            if (table === "restaurants" && data.restaurants.some(r => r.id !== editingId && r.name.trim().toLowerCase() === payload.name.toLowerCase() && ((payload.postcode && (r.postcode || "").replace(/\s/g, "").toLowerCase() === payload.postcode.replace(/\s/g, "").toLowerCase()) || (r.address || "").trim().toLowerCase() === payload.address.toLowerCase()))) throw new Error("Possible duplicate restaurant. Check existing records.");
+            if (table === "restaurants" && !( !editingId && window.selectedLocations?.size>1) && data.restaurants.some(r => r.id !== editingId && r.name.trim().toLowerCase() === payload.name.toLowerCase() && ((payload.postcode && (r.postcode || "").replace(/\s/g, "").toLowerCase() === payload.postcode.replace(/\s/g, "").toLowerCase()) || (r.address || "").trim().toLowerCase() === payload.address.toLowerCase()))) throw new Error("Possible duplicate restaurant. Check existing records.");
             if (table === "video_reviews") {
                 if (payload.platform === "tiktok" && !editingId) {
                     const handle = new URL(payload.video_url).pathname.split("/")[1].slice(1);
@@ -2370,7 +2405,7 @@ $("editor-form").addEventListener(
             const nextVideo = table === "restaurants" && event.submitter?.id === "save-next";
 
             if(table === "restaurants" && !editingId && window.selectedLocations?.size>1){
-                const rows=[...window.selectedLocations.values()].map(v=>({...payload,city:v.city,address:v.address,postcode:v.postcode||null,latitude:Number(v.latitude),longitude:Number(v.longitude),opening_hours:v.opening_hours||null,website_url:v.website_url||payload.website_url}));
+                const rows=[...window.selectedLocations.values()].map(v=>({...payload,city:v.city,address:v.address,postcode:v.postcode||null,latitude:Number(v.latitude),longitude:Number(v.longitude),opening_hours:v.opening_hours||"Opening times not yet verified",website_url:v.website_url||payload.website_url}));
                 if(rows.some(r=>!r.city||!r.address||!Number.isFinite(r.latitude)||!Number.isFinite(r.longitude)))throw new Error("A branch has incomplete location details.");
                 const fresh=rows.filter(p=>!data.restaurants.some(r=>r.name.toLowerCase()===p.name.toLowerCase()&&(r.address.toLowerCase()===p.address.toLowerCase()||(p.postcode&&r.postcode===p.postcode))));
                 if(!fresh.length)throw new Error("All selected branches already exist.");
