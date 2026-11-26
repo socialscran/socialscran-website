@@ -584,6 +584,8 @@ input:focus-visible {
 .restaurant-marker::before {content:"";position:absolute;left:11px;top:12px;width:2px;height:19px;background:#a1a1aa;border-radius:2px;box-shadow:0 0 1px #222;}
 .restaurant-marker::after {content:"";position:absolute;left:4px;top:2px;width:16px;height:16px;border:1.5px solid white;border-radius:50%;background:var(--pin-color);box-shadow:0 1px 4px #0007;box-sizing:border-box;}
 .restaurant-marker.selected::after {outline:3px solid var(--orange);outline-offset:2px;}
+
+.brand-row{margin-bottom:7px;gap:6px}.brand{font-size:19px;padding:9px 10px;border-radius:10px;white-space:nowrap}.header-actions{display:flex;gap:5px;align-items:center}.header-actions .theme-control{padding:9px 7px;min-height:40px;white-space:nowrap}.search{padding:10px 12px;border-radius:12px}.compact-menu{background:var(--background);color:var(--text);padding:12px;margin-top:7px;border-radius:12px;box-shadow:var(--shadow);max-height:55dvh;overflow:auto}.compact-menu[hidden]{display:none}.compact-menu .city-filters{flex-wrap:wrap;margin:8px 0 12px}.compact-menu .pill{font-size:13px;padding:8px 11px}#tag-buttons{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.filter-actions{display:flex;justify-content:space-between;gap:6px}.legend{display:flex;gap:10px;flex-wrap:wrap;margin:9px 0;font-size:12px}#map-info small{color:var(--muted)}@media(max-width:370px){.brand{font-size:16px;padding:8px 5px}.header-actions .theme-control{padding:8px 5px;font-size:11px}.top-ui{left:8px;right:8px}}
 </style>
 </head>
 
@@ -596,14 +598,14 @@ input:focus-visible {
   <div class="brand-row">
     <div class="brand">
       Social<span>Scran</span> 🍔
-      <small class="version">V0.9.3 · Map Clustering</small>
+      
     </div>
 
-    <select id="theme-select" class="theme-control" aria-label="Map and website theme">
+    <div class="header-actions"><select id="theme-select" class="theme-control" aria-label="Map and website theme">
       <option value="system">Auto</option>
       <option value="light">Light</option>
       <option value="dark">Dark</option>
-    </select>
+    </select><button id="filter-toggle" class="theme-control" aria-expanded="false" aria-controls="filter-menu">☷ Filters</button><button id="info-toggle" class="theme-control" aria-label="Map legend and version" aria-expanded="false" aria-controls="map-info">ⓘ</button></div>
   </div>
 
   <input
@@ -615,6 +617,7 @@ input:focus-visible {
     aria-label="Search restaurants or cities"
   >
 
+  <div id="filter-menu" class="compact-menu" hidden><strong>Location</strong>
   <div class="city-filters">
     <button class="pill active" data-city="All">All</button>
     <button class="pill" data-city="Manchester">Manchester</button>
@@ -622,8 +625,9 @@ input:focus-visible {
     <button class="pill" data-city="Warrington">Warrington</button>
   </div>
 
-  <details id="tag-filter" style="background:var(--background);border-radius:12px;padding:10px;margin-top:8px;box-shadow:var(--shadow)"><summary style="cursor:pointer">Food filters</summary><div id="tag-buttons" style="display:flex;flex-wrap:wrap;gap:6px;max-height:32vh;overflow:auto;margin-top:8px"></div><button id="clear-tags" class="pill">Clear filters</button></details>
-  <div id="status" role="status"></div><div style="margin-top:6px;background:var(--background);padding:7px;border-radius:8px;font-size:11px;display:flex;gap:9px;flex-wrap:wrap"><span>⚪ Standard</span><span style="color:#ff7540">● Popular</span><span style="color:#ef4444">● Trending</span><span style="color:#c99400">● Hotspot</span></div>
+  <div id="tag-filter"><strong>Food filters</strong><div id="tag-buttons"></div><div class="filter-actions"><button id="clear-tags" class="pill">Clear food filters</button><button id="filter-done" class="pill active">Done</button></div></div></div>
+  <div id="map-info" class="compact-menu" hidden><strong>Map legend</strong><div class="legend"><span>⚪ Standard</span><span style="color:#ff7540">● Popular</span><span style="color:#ef4444">● Trending</span><span style="color:#c99400">● Hotspot</span></div><small>V0.9.5 · Compact Map UI</small></div>
+  <div id="status" role="status"></div>
 
 </div>
 
@@ -1842,6 +1846,10 @@ setTimeout(() => {
 
 loadRestaurants();
 
+
+const filterToggle=document.getElementById("filter-toggle"), infoToggle=document.getElementById("info-toggle"), filterMenu=document.getElementById("filter-menu"), mapInfo=document.getElementById("map-info");
+function showMenu(which){filterMenu.hidden=which!=="filter";mapInfo.hidden=which!=="info";filterToggle.setAttribute("aria-expanded",String(!filterMenu.hidden));infoToggle.setAttribute("aria-expanded",String(!mapInfo.hidden));}
+filterToggle.addEventListener("click",()=>showMenu(filterMenu.hidden?"filter":null));infoToggle.addEventListener("click",()=>showMenu(mapInfo.hidden?"info":null));document.getElementById("filter-done").addEventListener("click",()=>showMenu(null));document.addEventListener("pointerdown",e=>{if(!e.target.closest(".top-ui"))showMenu(null);});document.addEventListener("keydown",e=>{if(e.key==="Escape")showMenu(null);});
 </script>
 
 </body>
