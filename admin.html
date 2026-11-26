@@ -441,7 +441,7 @@ footer {
             </div>
 
             <div class="version">
-                V0.9.9 · Quick Import
+                V0.9.10 · Smart Tagging
             </div>
         </div>
 
@@ -1632,13 +1632,59 @@ function addHelp(text) {
 
 const FOOD_TAGS = ["British", "American", "Italian", "Indian", "Chinese", "Japanese", "Korean", "Thai", "Mexican", "Turkish", "Brazilian", "Greek", "Caribbean", "Vietnamese", "Middle Eastern", "Burgers", "Pizza", "Steak", "Sandwiches", "Sushi", "Pasta", "Seafood", "BBQ", "Fried Chicken", "Desserts", "Breakfast", "Street Food", "Fine Dining", "Buffet", "Takeaway", "Caf\u00e9", "Pub Food", "Casual Dining", "Halal", "Vegan", "Vegetarian", "Gluten Free"];
 function tagsFrom(value) { return String(value || "").split(/[,;]+/).map(t => t.trim()).filter(Boolean).map(t => FOOD_TAGS.find(x => x.toLowerCase() === t.toLowerCase()) || ({burger:"Burgers",sandwich:"Sandwiches",english:"British",barbecue:"BBQ",cafe:"Café"}[t.toLowerCase()]) || t); }
+const DIET_TAGS = new Set(["Halal","Vegan","Vegetarian","Gluten Free"]);
+function smartTags(name, cuisine = "", type = "", restaurants = data.restaurants) {
+    const norm = v => String(v || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[’']/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+    const n = norm(name), c = norm(cuisine), t = norm(type);
+    const out = new Set();
+    const add = tags => tags.forEach(tag => { if (FOOD_TAGS.includes(tag) && !DIET_TAGS.has(tag)) out.add(tag); });
+    if (!n) return [];
+    for (const r of restaurants) if (norm(r.name) === n) add(tagsFrom(r.category));
+    add(tagsFrom(cuisine));
+    const rules = [
+        [/\b(pizza|pizzeria|dominos|pizza hut|papa johns)\b/, ["Pizza"]],
+        [/\b(burger|burgers|mcdonalds|burger king|five guys|shake shack)\b/, ["Burgers"]],
+        [/\b(kfc|popeyes|fried chicken|wingstop)\b/, ["Fried Chicken"]],
+        [/\b(steak|steakhouse|cowshed|cow shed|miller and carter)\b/, ["Steak"]],
+        [/\b(etci mehmet)\b/, ["Turkish","Steak"]],
+        [/\b(ad maiora)\b/, ["Italian","Sandwiches"]],
+        [/\b(fogo brazil)\b/, ["Brazilian","Steak"]],
+        [/\b(sushi)\b/, ["Sushi","Japanese"]],
+        [/\b(ramen|wagamama)\b/, ["Japanese"]],
+        [/\b(pasta)\b/, ["Pasta"]],
+        [/\b(sandwich|sandwiches|subway)\b/, ["Sandwiches"]],
+        [/\b(taco|tacos|burrito|burritos|tortilla|taco bell)\b/, ["Mexican"]],
+        [/\b(seafood|fish and chips|fish chips)\b/, ["Seafood"]],
+        [/\b(bbq|barbecue|barbeque)\b/, ["BBQ"]],
+        [/\b(dessert|desserts|ice cream|waffles|creams cafe)\b/, ["Desserts"]],
+        [/\b(cafe|coffee shop|costa coffee|starbucks|caffe nero)\b/, ["Café"]],
+        [/\b(breakfast|brunch)\b/, ["Breakfast"]],
+        [/\b(buffet)\b/, ["Buffet"]],
+        [/\b(takeaway|take away)\b/, ["Takeaway"]]
+    ];
+    for (const [pattern,tags] of rules) if (pattern.test(n) || pattern.test(c)) add(tags);
+    for (const tag of FOOD_TAGS.slice(0,15)) if (new RegExp("(?:^| )"+norm(tag)+"(?: |$)").test(n+" "+c)) add([tag]);
+    if (t === "cafe") add(["Café"]);
+    if (t === "takeaway sandwich shop" || t === "takeaway" || t === "fast food") add(["Takeaway"]);
+    return [...out];
+}
 function restaurantFields(record) {
     const selectedTags = new Set(tagsFrom(record.category));
+    const autoTags = new Set(), rejectedTags = new Set();
+    function applySmartTags(name, cuisine = "", type = "", reset = false) {
+        if (record.id) return;
+        if (reset) rejectedTags.clear();
+        for (const tag of autoTags) selectedTags.delete(tag);
+        autoTags.clear();
+        for (const tag of smartTags(name,cuisine,type)) if (!rejectedTags.has(tag) && !selectedTags.has(tag)) { selectedTags.add(tag); autoTags.add(tag); }
+        syncTags(); paintTags();
+        $("smart-tag-status").textContent = autoTags.size ? "Auto-selected: " + [...autoTags].join(", ") + ". Check before saving." : "No new automatic matches. Add tags manually if needed.";
+    }
     function syncTags() { $("field-category").value = [...selectedTags].join(", "); editorDirty = true; }
     function paintTags() {
         const box = $("tag-options"); box.replaceChildren();
         for (const tag of [...new Set([...FOOD_TAGS,...selectedTags])]) {
-            const b = makeButton((selectedTags.has(tag)?"✓ ":"")+tag, selectedTags.has(tag)?"btn":"btn btn-secondary", () => { if(busy)return; selectedTags.has(tag)?selectedTags.delete(tag):selectedTags.add(tag); syncTags(); paintTags(); });
+            const b = makeButton((selectedTags.has(tag)?"✓ ":"")+tag, selectedTags.has(tag)?"btn":"btn btn-secondary", () => { if(busy)return; if(selectedTags.has(tag)){selectedTags.delete(tag);autoTags.delete(tag);rejectedTags.add(tag);}else{selectedTags.add(tag);rejectedTags.delete(tag);} syncTags(); paintTags(); });
             b.setAttribute("aria-pressed",String(selectedTags.has(tag))); box.append(b);
         }
     }
@@ -1662,6 +1708,7 @@ function restaurantFields(record) {
             for (const r of rows.sort((a,b)=>Number(["restaurant","cafe","fast_food","pub","bar"].includes(b.type))-Number(["restaurant","cafe","fast_food","pub","bar"].includes(a.type)))) {
                 const button = makeButton(r.display_name, "btn btn-secondary full", () => {
                     if (busy || !results.isConnected) return;
+                    clearTimeout(nameTimer);
                     const a = r.address || {}, e = r.extratags || {};
                     const values = {name:r.name,category:e.cuisine?.replaceAll(";", ", ").replaceAll("_", " ") || "",city:a.city || a.town || a.village || "",address:[a.house_number,a.road].filter(Boolean).join(" ") || r.display_name,postcode:a.postcode,latitude:r.lat,longitude:r.lon,opening_hours:e.opening_hours,website_url:e.website || e["contact:website"]};
                     if(!record.id){
@@ -1670,7 +1717,7 @@ function restaurantFields(record) {
                         if(selectedLocations.size>1)return;
                     }
                     for (const [k,v] of Object.entries(values)) $("field-"+k).value = v || "";
-                    for (const tag of tagsFrom(values.category)) if (! ["Halal","Vegan","Vegetarian","Gluten Free"].includes(tag)) selectedTags.add(tag);
+                    if (!record.id) applySmartTags(values.name, values.category, r.type, true); else for (const tag of tagsFrom(values.category)) if (!DIET_TAGS.has(tag)) selectedTags.add(tag);
                     syncTags(); paintTags();
                     if(record.id) results.textContent = "Details filled. Check the branch and missing fields.";
                 }); results.append(button);
@@ -1693,7 +1740,12 @@ function restaurantFields(record) {
     categoryInput.readOnly = true;
     const tagBox = createElement("div"); tagBox.id = "tag-options"; tagBox.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin-top:10px";
     $("editor-fields").append(tagBox); paintTags();
-    addHelp("Choose multiple tags. Verify dietary claims before selecting them.");
+    const tagStatus = createElement("p", "Tags are suggested automatically for new restaurants. Verify dietary claims manually.", "muted"); tagStatus.id = "smart-tag-status";
+    $("editor-fields").append(tagStatus);
+    let nameTimer;
+    const nameInput = $("field-name");
+    nameInput.addEventListener("input", () => { clearTimeout(nameTimer); nameTimer = setTimeout(() => { if(nameInput.isConnected && !busy) applySmartTags(nameInput.value); }, 250); });
+    nameInput.addEventListener("change", () => { clearTimeout(nameTimer); if(!busy) applySmartTags(nameInput.value); });
     addField("popularity", "Map popularity (manual)", record.popularity || "standard", "select", true, ["standard","popular","trending","featured"].map(value=>({value,label:({standard:"Standard",popular:"Popular",trending:"Trending",featured:"Hotspot"})[value]})));
 
     addField(
@@ -1776,7 +1828,9 @@ function restaurantFields(record) {
         const b = businesses[Number(businessSelect.value)];
         if (!b || normalize(b.PostCode) !== normalize(postcodeInput.value)) return;
         if (selectedLocations.size) { postcodeStatus.textContent = "Reopen the form to use a postcode result instead of selected map branches."; return; }
+        clearTimeout(nameTimer);
         $("field-name").value = b.BusinessName || "";
+        applySmartTags(b.BusinessName, "", b.BusinessType, true);
         $("field-address").value = [b.AddressLine1,b.AddressLine2,b.AddressLine3,b.AddressLine4].filter(Boolean).join(", ");
         $("field-city").value = b.AddressLine4 || b.AddressLine3 || postcodeResult?.admin_district || field("city");
         const lat = b.geocode?.latitude, lon = b.geocode?.longitude;
