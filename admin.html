@@ -441,7 +441,7 @@ footer {
             </div>
 
             <div class="version">
-                V0.9.6 · Mobile Population
+                V0.9.7 · Creator Management
             </div>
         </div>
 
@@ -614,6 +614,7 @@ footer {
             placeholder="Search records..."
         >
 
+        <select id="creator-filter" class="search" hidden><option value="">All creators</option></select>
         <select id="restaurant-filter" class="search" hidden><option value="">All restaurants</option></select>
         <select id="status-filter" class="search">
             <option value="all" selected>All records</option>
@@ -733,6 +734,8 @@ let editingId = null;
 let editingTable = null;
 
 let busy = false;
+let permissions = {};
+let permissionReady = false;
 
 let loadVersion = 0;
 
@@ -810,6 +813,7 @@ function makeButton(text, className, action) {
 
 function errorText(error) {
 
+    if(error?.code === "23505") return "This record already exists. Check existing videos or creators before adding again.";
     return error?.message ||
         "An unexpected error occurred.";
 }
@@ -1056,11 +1060,13 @@ async function loadData() {
 
         data.video_reviews = results[2].data || [];
 
+        const privateResult = await db.from("creator_permissions").select("*");
+        permissionReady = !privateResult.error;
+        permissions = Object.fromEntries((privateResult.data || []).map(x=>[x.creator_id,x]));
         updateStats();
-
         renderRecords();
 
-        hideMessage("dashboard-message");
+        if(permissionReady) hideMessage("dashboard-message"); else showMessage("dashboard-message","Creator permission storage unavailable. Run the V0.9.7 SQL migration.","error");
 
     } catch (error) {
 
@@ -1232,7 +1238,13 @@ function renderHome(container, query) {
     container.append(createElement("h3","Restaurants needing videos"));
     for(const r of data.restaurants.filter(r=>approvedVideoCount(r.id)<6&&[r.name,r.city].join(" ").toLowerCase().includes(query)).sort((a,b)=>approvedVideoCount(a.id)-approvedVideoCount(b.id))){const card=createElement("div",null,"card");card.append(createElement("strong",r.name+" · "+r.city),createElement("p",approvedVideoCount(r.id)+"/6 approved reviews","muted"),makeButton("Find videos","btn btn-secondary",()=>{$("video-target").value=r.id;renderVideoTarget();$("video-workbench").scrollIntoView({behavior:"smooth"});}),makeButton("Add videos","btn",()=>openEditor("video_reviews",{restaurant_id:r.id})));container.append(card);}
 }
+$("creator-filter").addEventListener("change",renderRecords);
 function renderRecords() {
+    const cf=$("creator-filter"), cp=cf.value;
+    cf.hidden=activeTab!=="video_reviews";
+    cf.replaceChildren(new Option("All creators",""));
+    for(const c of data.creators) cf.add(new Option(c.display_name,c.id));
+    cf.value=data.creators.some(c=>c.id===cp)?cp:"";
     const rf = $("restaurant-filter"), previous = rf.value;
     rf.hidden = activeTab !== "video_reviews";
     rf.replaceChildren(new Option("All restaurants", ""));
@@ -1255,7 +1267,7 @@ function renderRecords() {
     $("status-filter").hidden = table === "home";
     if(table === "home") { renderHome(container, query); return; }
     const records = data[table].filter(record => {
-        if(table === "video_reviews" && (record.platform !== "tiktok" || (rf.value && record.restaurant_id !== rf.value))) return false;
+        if(table === "video_reviews" && (record.platform !== "tiktok" || (cf.value && record.creator_id !== cf.value) || (rf.value && record.restaurant_id !== rf.value))) return false;
 
         if (status === "approved" && !record.approved) {
             return false;
@@ -1362,7 +1374,10 @@ function renderRecords() {
         }
 
         if (table === "creators") {
-
+            const p=permissions[record.id] || {};
+            const vs=data.video_reviews.filter(v=>v.creator_id===record.id && v.platform==="tiktok");
+            card.append(createElement("p", "Permission: "+(p.permission_status || "Not recorded")+(p.permission_date?" · "+p.permission_date:""),"muted"),createElement("p",vs.length+" videos · "+new Set(vs.map(v=>v.restaurant_id)).size+" restaurants","muted"));
+            if(p.progress_updates) card.append(createElement("p","Progress updates requested","muted"));
             card.append(
                 createElement(
                     "p",
@@ -1480,9 +1495,7 @@ function renderRecords() {
             ),
 
             makeButton(
-                record.approved
-                    ? "Unapprove"
-                    : "Approve",
+                table === "creators" ? (record.approved ? "Hide content" : "Restore / approve content") : (record.approved ? "Unapprove" : "Approve"),
                 "btn",
                 () => toggleApproval(table, record)
             ),
@@ -1497,6 +1510,7 @@ function renderRecords() {
         if(table === "restaurants") {
             actions.prepend(makeButton("Find videos", "btn btn-secondary", ()=>{ $("video-target").value=record.id; renderVideoTarget(); $("video-workbench").scrollIntoView({behavior:"smooth",block:"start"}); }), makeButton("+ Add videos", "btn btn-secondary", ()=>openEditor("video_reviews",{restaurant_id:record.id})));
         }
+        if(table === "creators") actions.prepend(makeButton("View videos", "btn btn-secondary",()=>{document.querySelector('[data-tab="video_reviews"]').click(); $("restaurant-filter").value=""; $("creator-filter").value=record.id; renderRecords();}));
         card.append(actions);
 
         container.append(card);
@@ -1798,6 +1812,16 @@ function restaurantFields(record) {
 ========================================= */
 
 function creatorFields(record) {
+    const p = permissions[record.id] || {};
+    if(permissionReady){
+      addField("permission_status","Permission status",p.permission_status || "Not contacted","select",true,["Not contacted","Awaiting response","Granted","Declined"].map(value=>({value,label:value})));
+      addField("permission_date","Permission granted date",p.permission_date,"date");
+      addField("contact_method","Contact method",p.contact_method);
+      addField("contact_history","Contact history / private notes",p.contact_history,"textarea");
+      addCheckbox("progress_updates","Creator requests progress updates",p.progress_updates);
+      addField("monetisation","Monetisation consent",p.monetisation || "Not discussed","select",true,["Not discussed","Granted","Declined"].map(value=>({value,label:value})));
+    }
+
 
     addField(
         "display_name",
@@ -1925,7 +1949,8 @@ function openEditor(table, record = {}) {
         return;
     }
 
-    $("save-next").hidden = table !== "restaurants";
+    $("save-next").hidden = table !== "restaurants" && !(table === "video_reviews" && !record.id);
+    $("save-next").textContent = table === "restaurants" ? "Save & Add Video" : "Save & Add Another";
     editingTable = table;
 
     editingId = record.id || null;
@@ -2376,6 +2401,7 @@ $("editor-form").addEventListener(
                 for(const v of videos){
                     const targets=ids.filter(id=>!data.video_reviews.some(r=>r.restaurant_id===id&&r.platform==="tiktok"&&r.platform_video_id===v.id));
                     if(!targets.length)continue;
+                    if(data.video_reviews.some(r=>r.video_url===v.url && !targets.includes(r.restaurant_id))) throw new Error("This TikTok already exists on another restaurant. Check its existing record before linking another branch.");
                     const handle=new URL(v.url).pathname.split("/")[1].slice(1);
                     if(!/^[A-Za-z0-9_.]+$/.test(handle))throw new Error("Invalid TikTok username.");
                     let c=data.creators.find(c=>(c.tiktok_username||"").replace(/^@/,"").toLowerCase()===handle.toLowerCase());
@@ -2383,7 +2409,7 @@ $("editor-form").addEventListener(
                     for(const id of targets)rows.push({restaurant_id:id,creator_id:c.id,platform:"tiktok",video_url:v.url,platform_video_id:v.id,title:videos.length===1?optional("title"):null,approved:checked("approved")});
                 }
                 if(rows.length){const res=await db.from("video_reviews").insert(rows);if(res.error)throw res.error;count=rows.length;}
-                busy=false;closeEditor(true);await loadData();showMessage("dashboard-message",count+" video links saved; duplicates skipped.","success");return;
+                const again=event.submitter?.id==="save-next"; busy=false;closeEditor(true);await loadData();if(again)openEditor("video_reviews",{restaurant_id:ids[0]});showMessage("dashboard-message",count+" video links saved; duplicates skipped.","success");return;
             }
             if(table === "video_reviews" && editingId) $("field-video_url").value=(await resolveTikTok(field("video_url"))).url;
             const payload = buildPayload(table);
@@ -2438,6 +2464,10 @@ $("editor-form").addEventListener(
                 throw result.error;
             }
 
+            if(table === "creators" && permissionReady){
+                const privateSave=await db.from("creator_permissions").upsert({creator_id:result.data.id,permission_status:field("permission_status"),permission_date:optional("permission_date"),contact_method:optional("contact_method"),contact_history:optional("contact_history"),progress_updates:checked("progress_updates"),monetisation:field("monetisation")});
+                if(privateSave.error){editingId=result.data.id;throw new Error("Creator saved, but private details failed: "+privateSave.error.message);}
+            }
             busy = false;
 
             closeEditor(true);
@@ -2489,6 +2519,7 @@ $("editor-form").addEventListener(
 ========================================= */
 
 async function toggleApproval(table, record) {
+    if(table === "creators" && !confirm(record.approved ? "Hide all content from this creator? Existing video approvals are retained." : "Restore previously approved content from this creator? Confirm permission first.")) return;
 
     if (busy) {
         return;
