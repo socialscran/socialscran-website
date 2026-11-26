@@ -441,7 +441,7 @@ footer {
             </div>
 
             <div class="version">
-                V0.9.8 · Quick Restaurant Entry
+                V0.9.9 · Quick Import
             </div>
         </div>
 
@@ -912,6 +912,7 @@ async function showDashboard(session) {
 
     $("status-filter").value = "all";
     await loadData();
+    openExtensionImport();
 }
 
 $("login-form").addEventListener(
@@ -1724,7 +1725,7 @@ function restaurantFields(record) {
     businessSelect.setAttribute("aria-label", "Food businesses at postcode");
     const postcodeBox = createElement("div");
     postcodeBox.append(postcodeStatus, businessSelect);
-    $("editor-fields").append(postcodeBox);
+    $("editor-fields").prepend(postcodeInput.previousElementSibling, postcodeInput, postcodeBox);
     let timer, revision = 0, businesses = [], postcodeResult = null;
     const normalize = v => String(v || "").replace(/\s/g, "").toUpperCase();
     const valid = v => /^(?:GIR0AA|[A-Z]{1,2}\d[A-Z\d]?\d[A-Z]{2})$/.test(v);
@@ -1976,6 +1977,20 @@ function videoFields(record) {
 /* =========================================
    EDITOR WINDOW - V0.8.1
 ========================================= */
+
+function openExtensionImport() {
+    const params = new URLSearchParams(location.hash.slice(1));
+    const raw = params.get("import-tiktok");
+    if (!raw || !data.restaurants.length || !$("editor-modal").hidden) return;
+    let url;
+    try { url = new URL(raw); } catch { return; }
+    if (url.protocol !== "https:" || url.hostname !== "www.tiktok.com" || !/^\/@[a-zA-Z0-9._]+\/video\/\d+\/?$/.test(url.pathname)) return;
+    openEditor("video_reviews", {video_url: url.origin + url.pathname});
+    if (!$("editor-modal").hidden) {
+        editorDirty = true;
+        history.replaceState(null, "", location.pathname + location.search);
+    }
+}
 
 function openEditor(table, record = {}) {
 
